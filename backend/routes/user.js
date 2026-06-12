@@ -1,112 +1,112 @@
-const{Router} = require("express");
+const { Router } = require("express");
 const userRouter = Router();
-const {signupSchema,signinSchema,} = require("../validation");
+const { signupSchema, signinSchema, } = require("../validation");
 const { userModel, purchaseModel, contentModel } = require("../db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const {JWT_SECRET_USER} = require("../config");
+const { JWT_SECRET_USER } = require("../config");
 const { userMiddleware } = require("../middlewares/user");
 const { startEmailVerification, verifyEmailCode } = require("../emailVerification");
-const { authLimiter, resendLimiter } = require("../middlewares/rateLimiter"); // Fix #12
+const { authLimiter, resendLimiter } = require("../middlewares/rateLimiter");
 
-userRouter.post("/signup", authLimiter, async function(req,res){  // Fix #12: rate limited
-      const parsedData = signupSchema.safeParse(req.body);
+userRouter.post("/signup", authLimiter, async function (req, res) {
+  const parsedData = signupSchema.safeParse(req.body);
 
-      if (!parsedData.success){
-        return res.status(400).json({ // Fix #16: 404 → 400 (Bad Request) for validation errors
-            message:"Invalid Input",
-            errors :parsedData.error.errors
-        });
-      }
-      const firstname = parsedData.data.firstname;
-      const lastname = parsedData.data.lastname;
-      const email = parsedData.data.email;
-      const password = parsedData.data.password;
+  if (!parsedData.success) {
+    return res.status(400).json({
+      message: "Invalid Input",
+      errors: parsedData.error.errors
+    });
+  }
+  const firstname = parsedData.data.firstname;
+  const lastname = parsedData.data.lastname;
+  const email = parsedData.data.email;
+  const password = parsedData.data.password;
 
-     
-     try{
-        const  existingUser = await userModel.findOne({email:email});
-     if(existingUser){
-         return res.status(409).json({
-             message:"User already exists"
-         });
-     }     
-    const hashedPassword = await bcrypt.hash(password,10);    
 
-         await userModel.create({
-             firstname:firstname,
-             lastname:lastname,
-             email:email,
-             password:hashedPassword,
-         });
-          await startEmailVerification({
-            model: userModel,
-            email,
-            firstName: firstname,
-            subjectPrefix: "Verify your account",
-          });
-          return res.status(201).json({
-            message:"Signup successful. Verification code sent to email.",
-            requiresEmailVerification: true
-          });
-}catch(e){
-  console.log(e);
-         return res.status(500).json({
-             message:"Error checking  existing user"
-         });
-    
-}
+  try {
+    const existingUser = await userModel.findOne({ email: email });
+    if (existingUser) {
+      return res.status(409).json({
+        message: "User already exists"
+      });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await userModel.create({
+      firstname: firstname,
+      lastname: lastname,
+      email: email,
+      password: hashedPassword,
+    });
+    await startEmailVerification({
+      model: userModel,
+      email,
+      firstName: firstname,
+      subjectPrefix: "Verify your account",
+    });
+    return res.status(201).json({
+      message: "Signup successful. Verification code sent to email.",
+      requiresEmailVerification: true
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      message: "Error checking  existing user"
+    });
+
+  }
 });
 
-userRouter.post("/signin", authLimiter, async function(req,res){ // Fix #12: rate limited
+userRouter.post("/signin", authLimiter, async function (req, res) {
 
-    const parsedData = signinSchema.safeParse(req.body);
-    if(!parsedData.success){
-          return res.status(400).json({ // Fix #16: 404 → 400 (Bad Request) for validation errors
-            message: "Invalid Input",
-            errors: parsedData.error.errors,
-        });
-    }
-    const email = parsedData.data.email;
-    const password = parsedData.data.password;
+  const parsedData = signinSchema.safeParse(req.body);
+  if (!parsedData.success) {
+    return res.status(400).json({
+      message: "Invalid Input",
+      errors: parsedData.error.errors,
+    });
+  }
+  const email = parsedData.data.email;
+  const password = parsedData.data.password;
 
-    try{
-        const user = await userModel.findOne({email});
-        if(!user){
-            return res.status(401).json({
-                message:"invalid credentials",
-            })
-        }
-        const passwordMatch = await bcrypt.compare(password,user.password);
-        if(!passwordMatch){
-             return res.status(401).json({ 
-                message: "Invalid credentials"
-             });
-        }
-        if (!user.isEmailVerified) {
-          return res.status(403).json({
-            message: "Email not verified",
-            requiresEmailVerification: true,
-          });
-        }
-      const token = jwt.sign(
-        { id: user._id },
-        JWT_SECRET_USER,
-        { expiresIn: "7d" } // Fix #11: tokens had no expiry — stolen tokens lasted forever
-      );
-      res.status(200).json({
-        token:token,
-        message:"signin sucessfully"
+  try {
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.status(401).json({
+        message: "invalid credentials",
       })
-     
-    } catch (e) {
-        return res.status(500).json({
-             message: "Internal server error"
-             });
     }
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({
+        message: "Invalid credentials"
+      });
+    }
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        message: "Email not verified",
+        requiresEmailVerification: true,
+      });
+    }
+    const token = jwt.sign(
+      { id: user._id },
+      JWT_SECRET_USER,
+      { expiresIn: "7d" }
+    );
+    res.status(200).json({
+      token: token,
+      message: "signin sucessfully"
+    })
+
+  } catch (e) {
+    return res.status(500).json({
+      message: "Internal server error"
+    });
+  }
 });
 
-userRouter.post("/verify-email", authLimiter, async function (req, res) { // Fix #12: rate limited
+userRouter.post("/verify-email", authLimiter, async function (req, res) {
   const { email, code } = req.body || {};
   if (!email || !code) {
     return res.status(400).json({ message: "email and code are required" });
@@ -115,7 +115,7 @@ userRouter.post("/verify-email", authLimiter, async function (req, res) { // Fix
   return res.status(result.status).json({ message: result.message });
 });
 
-userRouter.post("/resend-verification-code", resendLimiter, async function (req, res) { // Fix #12: stricter limit
+userRouter.post("/resend-verification-code", resendLimiter, async function (req, res) {
   const { email } = req.body || {};
   if (!email) {
     return res.status(400).json({ message: "email is required" });
@@ -128,20 +128,20 @@ userRouter.post("/resend-verification-code", resendLimiter, async function (req,
   return res.status(result.status).json({ message: result.message });
 });
 
-userRouter.get("/purchases", userMiddleware, async function(req,res){
-  try{
+userRouter.get("/purchases", userMiddleware, async function (req, res) {
+  try {
     const purchase = await purchaseModel.find({
-        userId:req.userId
+      userId: req.userId
     }).populate("courseId");
 
     return res.status(200).json({
-        message : "purchases fetched successfully",
-        purchases: purchase
+      message: "purchases fetched successfully",
+      purchases: purchase
     })
-  }catch (e){
-      console.error("[purchases]", e);
+  } catch (e) {
+    console.error("[purchases]", e);
     res.status(500).json({
-     message: "internal server error"
+      message: "internal server error"
     })
   }
 
@@ -153,7 +153,7 @@ userRouter.get("/courses/:courseId/content", userMiddleware, async function (req
     const hasPurchased = await purchaseModel.findOne({
       userId: req.userId,
       courseId,
-      status : "completed"
+      status: "completed"
     });
 
     if (!hasPurchased) {
@@ -171,5 +171,5 @@ userRouter.get("/courses/:courseId/content", userMiddleware, async function (req
 });
 
 module.exports = ({
-    userRouter:userRouter
+  userRouter: userRouter
 })

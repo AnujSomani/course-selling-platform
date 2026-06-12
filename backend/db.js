@@ -13,7 +13,7 @@ const userSchema = new Schema({
         codeHash: { type: String },
         expiresAt: { type: Date },
     },
-}, { timestamps: true }); // Fix #23: added timestamps
+}, { timestamps: true });
 
 const adminSchema = new Schema({
     email: { type: String, unique: true },
@@ -26,7 +26,7 @@ const adminSchema = new Schema({
         codeHash: { type: String },
         expiresAt: { type: Date },
     },
-}, { timestamps: true }); // Fix #23: added timestamps
+}, { timestamps: true });
 
 const courseSchema = new Schema({
     price: Number,
@@ -48,8 +48,6 @@ const courseSchema = new Schema({
 const purchaseSchema = new Schema({
     userId: { type: objectId, ref: "user" },
     courseId: { type: objectId, ref: "course" },
-    // Fix #7: typo 'typr' → 'type'. sparse:true allows multiple free-course
-    // purchases (no orderId) without violating the unique constraint.
     razorpayOrderId: { type: String, unique: true, sparse: true },
     razorpayPaymentId: { type: String, unique: true, sparse: true },
     amount: { type: Number, required: true },

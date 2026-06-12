@@ -22,7 +22,7 @@ const s3 = require("../config/s3");
 const { adminMiddleware } = require("../middlewares/admin"); // Fix #3: was ../middlewares/auth
 
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
-const ALLOWED_PDF_TYPES   = ["application/pdf"]; // Fix #22: PDFs are also supported
+const ALLOWED_PDF_TYPES = ["application/pdf"]; // Fix #22: PDFs are also supported
 const ALLOWED_TYPES = [...ALLOWED_VIDEO_TYPES, ...ALLOWED_PDF_TYPES];
 const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024 * 1024; // 4 GB
 const PRESIGNED_URL_EXPIRY = 60 * 15; // 15 minutes — enough for large uploads
@@ -53,7 +53,7 @@ router.get("/presigned-url", adminMiddleware, async (req, res) => {
       .toLowerCase();
     // Use subfolder based on content type: videos/ or pdfs/
     const isVideo = ALLOWED_VIDEO_TYPES.includes(fileType);
-    const folder    = isVideo ? "videos" : "pdfs";
+    const folder = isVideo ? "videos" : "pdfs";
     const extension = isVideo
       ? fileType.split("/")[1].replace("quicktime", "mov")
       : "pdf";

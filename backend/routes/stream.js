@@ -16,7 +16,7 @@ const { getSignedUrl } = require("@aws-sdk/cloudfront-signer");
 const { userMiddleware } = require("../middlewares/user"); // Fix #4: was ../middlewares/auth
 const { contentModel, purchaseModel } = require("../db");
 
-const CF_DOMAIN      = process.env.CLOUDFRONT_DOMAIN;          // e.g. d1234abcd.cloudfront.net
+const CF_DOMAIN = process.env.CLOUDFRONT_DOMAIN;          // e.g. d1234abcd.cloudfront.net
 const CF_KEY_PAIR_ID = process.env.CLOUDFRONT_KEY_PAIR_ID;
 // Fix #5: guard against undefined before calling .replace() — avoids crash at startup
 const CF_PRIVATE_KEY = (process.env.CLOUDFRONT_PRIVATE_KEY || "").replace(/\\n/g, "\n");
@@ -33,15 +33,12 @@ router.get("/url/:contentId", userMiddleware, async (req, res) => {
   const userId = req.userId;
 
   try {
-    // 1. Get content record
     const content = await contentModel.findById(contentId);
     if (!content) {
       return res.status(404).json({ message: "Content not found" });
     }
 
-    // 2. Preview content is always accessible — no purchase needed
     if (!content.isPreview) {
-      // 3. Verify purchase for non-preview content
       const purchase = await purchaseModel.findOne({
         userId,
         courseId: content.courseId,
@@ -53,8 +50,6 @@ router.get("/url/:contentId", userMiddleware, async (req, res) => {
       }
     }
 
-    // 4. Generate CloudFront signed URL
-    // s3Key stored in content.url e.g. courses/abc/videos/uuid-lecture1.mp4
     const resourceUrl = `https://${CF_DOMAIN}/${content.url}`;
     const expiresAt = Math.floor(Date.now() / 1000) + STREAM_URL_EXPIRY_SECONDS;
 

@@ -1,6 +1,6 @@
 const express = require("express");
-const router  = express.Router();
-const crypto  = require("crypto");
+const router = express.Router();
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 
 const razorpay = require("../config/razorpay");
@@ -37,25 +37,23 @@ router.post("/create-order", userMiddleware, async (req, res) => {
       status: "pending",
     });
     if (pendingOrder) {
-      // Fix #21: pendingOrder.amount is stored in rupees → multiply by 100 for paise
-      // to be consistent with rpOrder.amount returned in the new-order path below.
       return res.status(200).json({
-        orderId:     pendingOrder.razorpayOrderId,
-        amount:      Math.round(pendingOrder.amount * 100), // paise — consistent with Razorpay
-        currency:    pendingOrder.currency,
-        courseName:  course.title,
+        orderId: pendingOrder.razorpayOrderId,
+        amount: Math.round(pendingOrder.amount * 100),
+        currency: pendingOrder.currency,
+        courseName: course.title,
         courseImage: course.imageUrl,
-        keyId:       process.env.RAZORPAY_KEY_ID,
-        resumed:     true,
+        keyId: process.env.RAZORPAY_KEY_ID,
+        resumed: true,
       });
     }
 
     const rpOrder = await razorpay.orders.create({
-      amount:   Math.round(course.price * 100), 
+      amount: Math.round(course.price * 100),
       currency: "INR",
-      receipt:  `rcpt_${userId.toString().slice(-6)}_${Date.now()}`,
+      receipt: `rcpt_${userId.toString().slice(-6)}_${Date.now()}`,
       notes: {
-        userId:   userId.toString(),
+        userId: userId.toString(),
         courseId: courseId.toString(),
       },
     });
@@ -64,18 +62,18 @@ router.post("/create-order", userMiddleware, async (req, res) => {
       userId,
       courseId,
       razorpayOrderId: rpOrder.id,
-      amount:   course.price,
+      amount: course.price,
       currency: "INR",
-      status:   "pending",
+      status: "pending",
     });
 
     return res.status(200).json({
-      orderId:     rpOrder.id,
-      amount:      rpOrder.amount,
-      currency:    rpOrder.currency,
-      courseName:  course.title,
+      orderId: rpOrder.id,
+      amount: rpOrder.amount,
+      currency: rpOrder.currency,
+      courseName: course.title,
       courseImage: course.imageUrl,
-      keyId:       process.env.RAZORPAY_KEY_ID,
+      keyId: process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
     if (err.code === 11000) {
@@ -140,11 +138,9 @@ async function completePurchase({ razorpayOrderId, razorpayPaymentId, payload })
 
 async function paymentWebhookHandler(req, res) {
   const signature = req.headers["x-razorpay-signature"];
-
-  // FIX: req.body MUST be the raw Buffer — see registration note above
   const expectedSig = crypto
     .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
-    .update(req.body) 
+    .update(req.body)
     .digest("hex");
 
   if (signature !== expectedSig) {
@@ -159,9 +155,9 @@ async function paymentWebhookHandler(req, res) {
     const payment = event.payload.payment.entity;
     try {
       const result = await completePurchase({
-        razorpayOrderId:  payment.order_id,
+        razorpayOrderId: payment.order_id,
         razorpayPaymentId: payment.id,
-        payload:           event.payload,
+        payload: event.payload,
       });
       console.log(`[webhook] completePurchase result: ${result.status} — paymentId: ${payment.id}`);
       return res.json(result);
@@ -201,15 +197,15 @@ router.post("/verify", userMiddleware, async (req, res) => {
 
   const pending = await purchaseModel.findOne({
     razorpayOrderId: razorpay_order_id,
-    userId:          req.userId, 
-    status:          "pending",
+    userId: req.userId,
+    status: "pending",
   });
 
   if (!pending) {
     const completed = await purchaseModel.findOne({
       razorpayOrderId: razorpay_order_id,
-      userId:          req.userId,
-      status:          "completed",
+      userId: req.userId,
+      status: "completed",
     });
     if (completed) {
       return res.status(200).json({ message: "Payment already verified", status: "already_processed" });
@@ -219,9 +215,9 @@ router.post("/verify", userMiddleware, async (req, res) => {
 
   try {
     const result = await completePurchase({
-      razorpayOrderId:  razorpay_order_id,
+      razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
-      payload:           { source: "client_verify" },
+      payload: { source: "client_verify" },
     });
     return res.status(200).json({ message: "Payment verified", ...result });
   } catch (err) {

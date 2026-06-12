@@ -2,17 +2,16 @@ const { Router } = require("express");
 const adminRouter = Router();
 const { adminModel, courseModel, contentModel } = require("../db");
 const bcrypt = require("bcrypt");
-const jwt    = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 const { JWT_SECRET_ADMIN } = require("../config");
 const { signupSchema, signinSchema } = require("../validation");
 const { adminMiddleware } = require("../middlewares/admin");
 const { startEmailVerification, verifyEmailCode } = require("../emailVerification");
-const { authLimiter, resendLimiter } = require("../middlewares/rateLimiter"); // Fix #12
+const { authLimiter, resendLimiter } = require("../middlewares/rateLimiter");
 
-adminRouter.post("/signup", authLimiter, async function (req, res) { // Fix #12: rate limited
+adminRouter.post("/signup", authLimiter, async function (req, res) {
   const parsedData = signupSchema.safeParse(req.body);
   if (!parsedData.success) {
-    // FIX: was 404 — 400 is correct for bad input
     return res.status(400).json({
       message: "Invalid input",
       errors: parsedData.error.errors,
@@ -47,7 +46,7 @@ adminRouter.post("/signup", authLimiter, async function (req, res) { // Fix #12:
   }
 });
 
-adminRouter.post("/signin", authLimiter, async function (req, res) { // Fix #12: rate limited
+adminRouter.post("/signin", authLimiter, async function (req, res) {
   const parsedData = signinSchema.safeParse(req.body);
   if (!parsedData.success) {
     return res.status(400).json({
@@ -86,7 +85,7 @@ adminRouter.post("/signin", authLimiter, async function (req, res) { // Fix #12:
   }
 });
 
-adminRouter.post("/verify-email", authLimiter, async function (req, res) { // Fix #12: rate limited
+adminRouter.post("/verify-email", authLimiter, async function (req, res) {
   const { email, code } = req.body || {};
   if (!email || !code) {
     return res.status(400).json({ message: "email and code are required" });
@@ -95,7 +94,7 @@ adminRouter.post("/verify-email", authLimiter, async function (req, res) { // Fi
   return res.status(result.status).json({ message: result.message });
 });
 
-adminRouter.post("/resend-verification-code", resendLimiter, async function (req, res) { // Fix #12: stricter limit
+adminRouter.post("/resend-verification-code", resendLimiter, async function (req, res) {
   const { email } = req.body || {};
   if (!email) {
     return res.status(400).json({ message: "email is required" });
@@ -152,10 +151,10 @@ adminRouter.put("/courses", adminMiddleware, async function (req, res) {
     await courseModel.updateOne(
       { _id: courseId, creatorId: adminId },
       {
-        ...(title       !== undefined ? { title }       : {}),
+        ...(title !== undefined ? { title } : {}),
         ...(description !== undefined ? { description } : {}),
-        ...(imageUrl    !== undefined ? { imageUrl }    : {}),
-        ...(price       !== undefined ? { price }       : {}),
+        ...(imageUrl !== undefined ? { imageUrl } : {}),
+        ...(price !== undefined ? { price } : {}),
       }
     );
 
@@ -180,7 +179,7 @@ adminRouter.get("/bulk", adminMiddleware, async function (req, res) {
 
 adminRouter.post("/courses/:courseId/content", adminMiddleware, async function (req, res) {
   try {
-    const adminId   = req.userId;
+    const adminId = req.userId;
     const { courseId } = req.params;
     const { type, title, url, text, order, isPreview, metadata } = req.body;
 
@@ -218,7 +217,7 @@ adminRouter.post("/courses/:courseId/content", adminMiddleware, async function (
 });
 adminRouter.get("/courses/:courseId/content", adminMiddleware, async function (req, res) {
   try {
-    const adminId   = req.userId;
+    const adminId = req.userId;
     const { courseId } = req.params;
 
     const course = await courseModel.findOne({ _id: courseId, creatorId: adminId });
@@ -239,7 +238,7 @@ adminRouter.get("/courses/:courseId/content", adminMiddleware, async function (r
 
 adminRouter.put("/content/:contentId", adminMiddleware, async function (req, res) {
   try {
-    const adminId     = req.userId;
+    const adminId = req.userId;
     const { contentId } = req.params;
 
     const content = await contentModel.findById(contentId);
@@ -254,13 +253,13 @@ adminRouter.put("/content/:contentId", adminMiddleware, async function (req, res
 
     const { type, title, url, text, order, isPreview, metadata } = req.body;
     const update = {
-      ...(type      !== undefined ? { type }             : {}),
-      ...(title     !== undefined ? { title }            : {}),
-      ...(url       !== undefined ? { url }              : {}),
-      ...(text      !== undefined ? { text }             : {}),
-      ...(order     !== undefined ? { order }            : {}),
+      ...(type !== undefined ? { type } : {}),
+      ...(title !== undefined ? { title } : {}),
+      ...(url !== undefined ? { url } : {}),
+      ...(text !== undefined ? { text } : {}),
+      ...(order !== undefined ? { order } : {}),
       ...(isPreview !== undefined ? { isPreview: !!isPreview } : {}),
-      ...(metadata  !== undefined ? { metadata }         : {}),
+      ...(metadata !== undefined ? { metadata } : {}),
     };
 
     await contentModel.updateOne({ _id: contentId }, update);
@@ -273,7 +272,7 @@ adminRouter.put("/content/:contentId", adminMiddleware, async function (req, res
 
 adminRouter.delete("/content/:contentId", adminMiddleware, async function (req, res) {
   try {
-    const adminId     = req.userId;
+    const adminId = req.userId;
     const { contentId } = req.params;
 
     const content = await contentModel.findById(contentId);
