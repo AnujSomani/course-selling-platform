@@ -1,13 +1,26 @@
 node_modules/
 
-# env files
+# ── Environment files ──────────────────────────────────────────────────────────
+# Block ALL .env variants everywhere in the project — no exceptions
 .env
-backend/.env
-frontend/.env
+.env.*
+!.env.example
+!.env.*.example
 
-# build files
+# Explicit paths (belt + suspenders)
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+
+# ── Build outputs ──────────────────────────────────────────────────────────────
 frontend/build/
 frontend/dist/
 
-# logs
+# ── Logs ──────────────────────────────────────────────────────────────────────
 npm-debug.log*
+*.log
+
+# ── OS junk ───────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
