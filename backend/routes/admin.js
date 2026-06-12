@@ -1,109 +1,92 @@
-const { Router } = require ("express");
+const { Router } = require("express");
 const adminRouter = Router();
 const { adminModel, courseModel, contentModel } = require("../db");
-const bcrypt  = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const {JWT_SECRET_ADMIN} = require("../config");
-const {signupSchema,signinSchema} = require("../validation");
-const {adminMiddleware }= require("../middlewares/admin")
+const bcrypt = require("bcrypt");
+const jwt    = require("jsonwebtoken");
+const { JWT_SECRET_ADMIN } = require("../config");
+const { signupSchema, signinSchema } = require("../validation");
+const { adminMiddleware } = require("../middlewares/admin");
 const { startEmailVerification, verifyEmailCode } = require("../emailVerification");
+const { authLimiter, resendLimiter } = require("../middlewares/rateLimiter"); // Fix #12
 
+adminRouter.post("/signup", authLimiter, async function (req, res) { // Fix #12: rate limited
+  const parsedData = signupSchema.safeParse(req.body);
+  if (!parsedData.success) {
+    // FIX: was 404 — 400 is correct for bad input
+    return res.status(400).json({
+      message: "Invalid input",
+      errors: parsedData.error.errors,
+    });
+  }
 
-adminRouter.post ("/signup", async function(req,res){
+  const { firstname, lastname, email, password } = parsedData.data;
 
-     const parsedData = signupSchema.safeParse(req.body);
-
-      if (!parsedData.success){
-        return res.status(404).json({
-            message:"Invalid Input",
-            errors :parsedData.error.errors
-        });
-      }
-      const firstname = parsedData.data.firstname;
-      const lastname = parsedData.data.lastname;
-      const email = parsedData.data.email;
-      const password = parsedData.data.password;
-
-     
-     try{
-        const  existingAdmin = await adminModel.findOne({email:email});
-     if(existingAdmin){
-         return res.status(409).json({
-             message:"Admin already exists"
-         });
-     }     
-    const hashedPassword = await bcrypt.hash(password,10);    
-
-         await adminModel.create({
-             firstname:firstname,
-             lastname:lastname,
-             email:email,
-             password:hashedPassword,
-         });
-         await startEmailVerification({
-           model: adminModel,
-           email,
-           firstName: firstname,
-           subjectPrefix: "Verify your admin account",
-         });
-         return res.status(201).json({
-           message:"Signup successful. Verification code sent to email.",
-           requiresEmailVerification: true,
-         });
-}catch(e){
-         return res.status(500).json({
-             message:"Error checking  existing user"
-         });
+  try {
+    const existingAdmin = await adminModel.findOne({ email });
+    if (existingAdmin) {
+      return res.status(409).json({ message: "Admin already exists" });
     }
-       
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await adminModel.create({ firstname, lastname, email, password: hashedPassword });
+
+    await startEmailVerification({
+      model: adminModel,
+      email,
+      firstName: firstname,
+      subjectPrefix: "Verify your admin account",
+    });
+
+    return res.status(201).json({
+      message: "Signup successful. Verification code sent to email.",
+      requiresEmailVerification: true,
+    });
+  } catch (e) {
+    console.error("[admin-signup]", e);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-adminRouter.post ("/signin", async function(req,res){
-   const parsedData = signinSchema.safeParse(req.body);
-      if(!parsedData.success){
-            return res.status(400).json({
-              message: "Invalid Input",
-              errors: parsedData.error.errors,
-          });
-      }
-      const email = parsedData.data.email;
-      const password = parsedData.data.password;
-  
-      try{
-          const admin = await adminModel.findOne({email});
-          if(!admin){
-              return res.status(401).json({
-                  message:"invalid credentials",
-              })
-          }
-          const passwordMatch = await bcrypt.compare(password,admin.password);
-          if(!passwordMatch){
-               return res.status(401).json({ 
-                  message: "Invalid credentials"
-               });
-          }
-          if (!admin.isEmailVerified) {
-            return res.status(403).json({
-              message: "Email not verified",
-              requiresEmailVerification: true,
-            });
-          }
-        const token = jwt.sign({
-          id:admin._id
-        },JWT_SECRET_ADMIN);
-        res.status(200).json({
-          token:token,
-          message:"signin sucessfully"
-        })
-       
-      } catch (e) {
-          return res.status(500).json({
-               message: "Internal server error"
-               });
-      }
-  });
+adminRouter.post("/signin", authLimiter, async function (req, res) { // Fix #12: rate limited
+  const parsedData = signinSchema.safeParse(req.body);
+  if (!parsedData.success) {
+    return res.status(400).json({
+      message: "Invalid input",
+      errors: parsedData.error.errors,
+    });
+  }
 
-adminRouter.post("/verify-email", async function (req, res) {
+  const { email, password } = parsedData.data;
+
+  try {
+    const admin = await adminModel.findOne({ email });
+
+    if (!admin) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, admin.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    if (!admin.isEmailVerified) {
+      return res.status(403).json({
+        message: "Email not verified",
+        requiresEmailVerification: true,
+      });
+    }
+
+    const token = jwt.sign({ id: admin._id }, JWT_SECRET_ADMIN, { expiresIn: "7d" });
+
+    return res.status(200).json({ token, message: "Signed in successfully" });
+  } catch (e) {
+    console.error("[admin-signin]", e);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+adminRouter.post("/verify-email", authLimiter, async function (req, res) { // Fix #12: rate limited
   const { email, code } = req.body || {};
   if (!email || !code) {
     return res.status(400).json({ message: "email and code are required" });
@@ -112,7 +95,7 @@ adminRouter.post("/verify-email", async function (req, res) {
   return res.status(result.status).json({ message: result.message });
 });
 
-adminRouter.post("/resend-verification-code", async function (req, res) {
+adminRouter.post("/resend-verification-code", resendLimiter, async function (req, res) { // Fix #12: stricter limit
   const { email } = req.body || {};
   if (!email) {
     return res.status(400).json({ message: "email is required" });
@@ -125,147 +108,190 @@ adminRouter.post("/resend-verification-code", async function (req, res) {
   return res.status(result.status).json({ message: result.message });
 });
 
-adminRouter.post ("/courses",adminMiddleware,async function(req,res){
-
+adminRouter.post("/courses", adminMiddleware, async function (req, res) {
+  try {
     const adminId = req.userId;
-    const {title,description,imageUrl,price} = req.body;
+    const { title, description, imageUrl, price } = req.body;
+
+    if (!title || !description || price === undefined) {
+      return res.status(400).json({ message: "title, description and price are required" });
+    }
 
     const course = await courseModel.create({
-          title:title,
-          description:description,
-          imageUrl:imageUrl,
-          price:price,
-          creatorId:adminId
-    })
-    res.json({
-        message:"cource created sucessfully",
-        courseId:course._id
-    })
+      title,
+      description,
+      imageUrl,
+      price,
+      creatorId: adminId,
+    });
+
+    return res.status(201).json({
+      message: "Course created successfully",
+      courseId: course._id,
+    });
+  } catch (e) {
+    console.error("[create-course]", e);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-adminRouter.put ("/courses",adminMiddleware,async function(req,res){
+adminRouter.put("/courses", adminMiddleware, async function (req, res) {
+  try {
     const adminId = req.userId;
     const { courseId, title, description, imageUrl, price } = req.body;
+
     if (!courseId) {
-        return res.status(400).json({ message: "courseId is required" });
+      return res.status(400).json({ message: "courseId is required" });
     }
+
+    const course = await courseModel.findOne({ _id: courseId, creatorId: adminId });
+    if (!course) {
+      return res.status(404).json({ message: "Course not found or not yours" });
+    }
+
     await courseModel.updateOne(
-        {
-            _id: courseId,
-            creatorId: adminId,
-        },
-        {
-            ...(title !== undefined ? { title } : {}),
-            ...(description !== undefined ? { description } : {}),
-            ...(imageUrl !== undefined ? { imageUrl } : {}),
-            ...(price !== undefined ? { price } : {}),
-        }
+      { _id: courseId, creatorId: adminId },
+      {
+        ...(title       !== undefined ? { title }       : {}),
+        ...(description !== undefined ? { description } : {}),
+        ...(imageUrl    !== undefined ? { imageUrl }    : {}),
+        ...(price       !== undefined ? { price }       : {}),
+      }
     );
-    res.status(200).json({
-        message : "course updated sucessfully",
-        courseId: courseId
-    })
+
+    return res.status(200).json({ message: "Course updated successfully", courseId });
+  } catch (e) {
+    console.error("[update-course]", e);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-adminRouter.get ("/bulk",adminMiddleware,async function(req,res){
-
+adminRouter.get("/bulk", adminMiddleware, async function (req, res) {
+  try {
     const adminId = req.userId;
-
     const courses = await courseModel.find({ creatorId: adminId });
-    res.json({
-        message:"get all the created courses",
-        courses
-    })
+
+    return res.status(200).json({ message: "Courses fetched successfully", courses });
+  } catch (e) {
+    console.error("[bulk-courses]", e);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 adminRouter.post("/courses/:courseId/content", adminMiddleware, async function (req, res) {
-    const adminId = req.userId;
+  try {
+    const adminId   = req.userId;
     const { courseId } = req.params;
     const { type, title, url, text, order, isPreview, metadata } = req.body;
 
     const course = await courseModel.findOne({ _id: courseId, creatorId: adminId });
     if (!course) {
-        return res.status(404).json({ message: "course not found" });
+      return res.status(404).json({ message: "Course not found" });
     }
+
     if (!type || !title) {
-        return res.status(400).json({ message: "type and title are required" });
+      return res.status(400).json({ message: "type and title are required" });
     }
-    if ((type === "text" && !text) || (type !== "text" && !url)) {
-        return res.status(400).json({ message: "url required for non-text, text required for text type" });
+    if (type === "text" && !text) {
+      return res.status(400).json({ message: "text field is required for text content" });
+    }
+    if (type !== "text" && !url) {
+      return res.status(400).json({ message: "url is required for non-text content" });
     }
 
     const content = await contentModel.create({
-        courseId,
-        type,
-        title,
-        url,
-        text,
-        order,
-        isPreview: !!isPreview,
-        metadata: metadata ?? {},
+      courseId,
+      type,
+      title,
+      url,
+      text,
+      order,
+      isPreview: !!isPreview,
+      metadata: metadata ?? {},
     });
-    return res.status(201).json({ 
-        message: "content created", contentId: content._id 
-    });
-});
 
+    return res.status(201).json({ message: "Content created", contentId: content._id });
+  } catch (e) {
+    console.error("[create-content]", e);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 adminRouter.get("/courses/:courseId/content", adminMiddleware, async function (req, res) {
-    const adminId = req.userId;
+  try {
+    const adminId   = req.userId;
     const { courseId } = req.params;
+
     const course = await courseModel.findOne({ _id: courseId, creatorId: adminId });
     if (!course) {
-        return res.status(404).json({ message: "course not found" });
+      return res.status(404).json({ message: "Course not found" });
     }
+
     const contents = await contentModel
-        .find({ courseId })
-        .sort({ order: 1, createdAt: 1 });
-    return res.json({ message: "course contents", contents });
+      .find({ courseId })
+      .sort({ order: 1, createdAt: 1 });
+
+    return res.status(200).json({ message: "Course contents", contents });
+  } catch (e) {
+    console.error("[get-content]", e);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 adminRouter.put("/content/:contentId", adminMiddleware, async function (req, res) {
-    const adminId = req.userId;
+  try {
+    const adminId     = req.userId;
     const { contentId } = req.params;
 
     const content = await contentModel.findById(contentId);
     if (!content) {
-        return res.status(404).json({ message: "content not found" });
+      return res.status(404).json({ message: "Content not found" });
     }
+
     const course = await courseModel.findOne({ _id: content.courseId, creatorId: adminId });
     if (!course) {
-        return res.status(403).json({ message: "not allowed" });
+      return res.status(403).json({ message: "Not allowed" });
     }
 
     const { type, title, url, text, order, isPreview, metadata } = req.body;
     const update = {
-        ...(type !== undefined ? { type } : {}),
-        ...(title !== undefined ? { title } : {}),
-        ...(url !== undefined ? { url } : {}),
-        ...(text !== undefined ? { text } : {}),
-        ...(order !== undefined ? { order } : {}),
-        ...(isPreview !== undefined ? { isPreview: !!isPreview } : {}),
-        ...(metadata !== undefined ? { metadata } : {}),
+      ...(type      !== undefined ? { type }             : {}),
+      ...(title     !== undefined ? { title }            : {}),
+      ...(url       !== undefined ? { url }              : {}),
+      ...(text      !== undefined ? { text }             : {}),
+      ...(order     !== undefined ? { order }            : {}),
+      ...(isPreview !== undefined ? { isPreview: !!isPreview } : {}),
+      ...(metadata  !== undefined ? { metadata }         : {}),
     };
+
     await contentModel.updateOne({ _id: contentId }, update);
-    return res.json({ message: "content updated", contentId });
+    return res.status(200).json({ message: "Content updated", contentId });
+  } catch (e) {
+    console.error("[update-content]", e);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 adminRouter.delete("/content/:contentId", adminMiddleware, async function (req, res) {
-    const adminId = req.userId;
+  try {
+    const adminId     = req.userId;
     const { contentId } = req.params;
 
     const content = await contentModel.findById(contentId);
     if (!content) {
-        return res.status(404).json({ message: "content not found" });
+      return res.status(404).json({ message: "Content not found" });
     }
+
     const course = await courseModel.findOne({ _id: content.courseId, creatorId: adminId });
     if (!course) {
-        return res.status(403).json({ message: "not allowed" });
+      return res.status(403).json({ message: "Not allowed" });
     }
 
     await contentModel.deleteOne({ _id: contentId });
-    return res.json({ message: "content deleted", contentId });
+    return res.status(200).json({ message: "Content deleted", contentId });
+  } catch (e) {
+    console.error("[delete-content]", e);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-module.exports = {
-    adminRouter:adminRouter
-}
+module.exports = { adminRouter };

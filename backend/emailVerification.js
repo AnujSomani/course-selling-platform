@@ -1,7 +1,6 @@
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
-// transporter (FREE: use Gmail / Mailtrap)
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -24,27 +23,36 @@ function hashCode(email, code) {
 }
 
 
-async function sendEmail(to, code) {
-  // DEV MODE → just print
+// Fix #19: accept subject and name so the email is personalised
+async function sendEmail(to, code, { subject, firstName } = {}) {
   if (process.env.EMAIL_DEV_MODE === "1") {
-    console.log("CODE:", code);
+    console.log(`[EMAIL DEV] To: ${to} | Subject: ${subject} | CODE: ${code}`);
     return;
   }
 
-  // REAL EMAIL
+  const greeting = firstName ? `Hi ${firstName},` : "Hi,";
+
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to,
-    subject: "Email Verification",
-    text: `Your verification code is ${code}`
+    subject: subject || "Email Verification",
+    text: `${greeting}\n\nYour verification code is: ${code}\n\nThis code expires in 10 minutes.`,
+    html: `<p>${greeting}</p><p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`,
   });
 }
 
-async function startEmailVerification({ model, email }) {
+// Fix #19: now uses firstName and subjectPrefix params
+// Fix #20: blocks resend if the user is already verified
+async function startEmailVerification({ model, email, firstName, subjectPrefix }) {
   const user = await model.findOne({ email });
   if (!user) return { status: 404, message: "User not found" };
 
-  const code = generateCode();
+  // Fix #20: don't send a code to an account that's already verified
+  if (user.isEmailVerified) {
+    return { status: 400, message: "Email is already verified" };
+  }
+
+  const code     = generateCode();
   const codeHash = hashCode(email, code);
 
   await model.updateOne(
@@ -52,12 +60,16 @@ async function startEmailVerification({ model, email }) {
     {
       emailVerification: {
         codeHash,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 min
-      }
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
     }
   );
 
-  await sendEmail(email, code);
+  // Fix #19: pass subject and name through to the email function
+  await sendEmail(email, code, {
+    subject:   `${subjectPrefix || "Verify your account"} — Your Code`,
+    firstName,
+  });
 
   return { status: 200, message: "Code sent" };
 }

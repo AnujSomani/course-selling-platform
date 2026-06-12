@@ -1,6 +1,3 @@
-// const express = require("express");
-// const Router = express.Router;
-          //OR
 const{Router} = require("express");
 const userRouter = Router();
 const {signupSchema,signinSchema,} = require("../validation");
@@ -10,15 +7,13 @@ const jwt = require("jsonwebtoken");
 const {JWT_SECRET_USER} = require("../config");
 const { userMiddleware } = require("../middlewares/user");
 const { startEmailVerification, verifyEmailCode } = require("../emailVerification");
-//const { userAuth }        = require("../middleware/userAuth");
+const { authLimiter, resendLimiter } = require("../middlewares/rateLimiter"); // Fix #12
 
-
-
-userRouter.post("/signup",async function(req,res){
+userRouter.post("/signup", authLimiter, async function(req,res){  // Fix #12: rate limited
       const parsedData = signupSchema.safeParse(req.body);
 
       if (!parsedData.success){
-        return res.status(404).json({
+        return res.status(400).json({ // Fix #16: 404 → 400 (Bad Request) for validation errors
             message:"Invalid Input",
             errors :parsedData.error.errors
         });
@@ -63,11 +58,11 @@ userRouter.post("/signup",async function(req,res){
 }
 });
 
-userRouter.post("/signin",async function(req,res){
+userRouter.post("/signin", authLimiter, async function(req,res){ // Fix #12: rate limited
 
     const parsedData = signinSchema.safeParse(req.body);
     if(!parsedData.success){
-          return res.status(404).json({
+          return res.status(400).json({ // Fix #16: 404 → 400 (Bad Request) for validation errors
             message: "Invalid Input",
             errors: parsedData.error.errors,
         });
@@ -94,9 +89,11 @@ userRouter.post("/signin",async function(req,res){
             requiresEmailVerification: true,
           });
         }
-      const token = jwt.sign({
-        id:user._id
-      },JWT_SECRET_USER);
+      const token = jwt.sign(
+        { id: user._id },
+        JWT_SECRET_USER,
+        { expiresIn: "7d" } // Fix #11: tokens had no expiry — stolen tokens lasted forever
+      );
       res.status(200).json({
         token:token,
         message:"signin sucessfully"
@@ -109,7 +106,7 @@ userRouter.post("/signin",async function(req,res){
     }
 });
 
-userRouter.post("/verify-email", async function (req, res) {
+userRouter.post("/verify-email", authLimiter, async function (req, res) { // Fix #12: rate limited
   const { email, code } = req.body || {};
   if (!email || !code) {
     return res.status(400).json({ message: "email and code are required" });
@@ -118,7 +115,7 @@ userRouter.post("/verify-email", async function (req, res) {
   return res.status(result.status).json({ message: result.message });
 });
 
-userRouter.post("/resend-verification-code", async function (req, res) {
+userRouter.post("/resend-verification-code", resendLimiter, async function (req, res) { // Fix #12: stricter limit
   const { email } = req.body || {};
   if (!email) {
     return res.status(400).json({ message: "email is required" });
@@ -141,7 +138,8 @@ userRouter.get("/purchases", userMiddleware, async function(req,res){
         message : "purchases fetched successfully",
         purchases: purchase
     })
-  }catch{
+  }catch (e){
+      console.error("[purchases]", e);
     res.status(500).json({
      message: "internal server error"
     })
@@ -155,6 +153,7 @@ userRouter.get("/courses/:courseId/content", userMiddleware, async function (req
     const hasPurchased = await purchaseModel.findOne({
       userId: req.userId,
       courseId,
+      status : "completed"
     });
 
     if (!hasPurchased) {

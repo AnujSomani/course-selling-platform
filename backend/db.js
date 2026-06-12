@@ -1,45 +1,77 @@
-const mongoose = require ("mongoose");
+const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const objectId = mongoose.Schema.Types.ObjectId;
 
 const userSchema = new Schema({
-   email : {type:String,unique:true},
-   password : String,
-   firstname : String,
-   lastname : String,
-   isEmailVerified: { type: Boolean, default: false, index: true },
-   emailVerifiedAt: { type: Date },
-   emailVerification: {
-      codeHash: { type: String },
-      expiresAt: { type: Date },
-   },
-}) ;
-
-const adminSchema = new Schema({
-    email : {type:String,unique:true},
-    password : String,
-    firstname : String,
-    lastname : String,
+    email: { type: String, unique: true },
+    password: String,
+    firstname: String,
+    lastname: String,
     isEmailVerified: { type: Boolean, default: false, index: true },
     emailVerifiedAt: { type: Date },
     emailVerification: {
-       codeHash: { type: String },
-       expiresAt: { type: Date },
+        codeHash: { type: String },
+        expiresAt: { type: Date },
     },
+}, { timestamps: true }); // Fix #23: added timestamps
+
+const adminSchema = new Schema({
+    email: { type: String, unique: true },
+    password: String,
+    firstname: String,
+    lastname: String,
+    isEmailVerified: { type: Boolean, default: false, index: true },
+    emailVerifiedAt: { type: Date },
+    emailVerification: {
+        codeHash: { type: String },
+        expiresAt: { type: Date },
+    },
+}, { timestamps: true }); // Fix #23: added timestamps
+
+const courseSchema = new Schema({
+    price: Number,
+    description: String,
+    title: String,
+    imageUrl: String,
+    creatorId: { type: objectId, ref: "admin" },
+    category: { type: String, default: "" },
+    level: {
+        type: String,
+        enum: ["Beginner", "Intermediate", "Advanced"],
+        default: "Beginner",
+    },
+    originalPrice: { type: Number },
+    rating: { type: Number, default: 0 },
+    totalStudents: { type: Number, default: 0 },
 });
 
-const courseSchema =  new Schema ({
-    price : Number,
-    description : String,
-    title : String,
-    imageUrl : String,
-    creatorId : {type:objectId , ref : "admin"}
-});
-
-const purchaseSchema = new Schema ({
-    userId :{type : objectId, ref : "user" },
-    courseId : {type : objectId, ref : "course"}
-});
+const purchaseSchema = new Schema({
+    userId: { type: objectId, ref: "user" },
+    courseId: { type: objectId, ref: "course" },
+    // Fix #7: typo 'typr' → 'type'. sparse:true allows multiple free-course
+    // purchases (no orderId) without violating the unique constraint.
+    razorpayOrderId: { type: String, unique: true, sparse: true },
+    razorpayPaymentId: { type: String, unique: true, sparse: true },
+    amount: { type: Number, required: true },
+    currency: { type: String, default: "INR" },
+    status: {
+        type: String,
+        enum: ["pending", "completed", "failed"],
+        default: "pending",
+        index: true,
+    },
+    webhookPayload: { type: Schema.Types.Mixed },
+},
+    { timestamps: true }
+);
+purchaseSchema.index(
+    { userId: 1, courseId: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { status: "completed" },
+        name: "unique_completed_purchase",
+    }
+);
 
 const contentSchema = new Schema(
     {
