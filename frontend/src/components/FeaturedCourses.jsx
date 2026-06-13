@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, AlertCircle, RefreshCw } from "lucide-react";
-import API from "../../api/axios";
+import API from "../api/axios";
 import CourseCard from "./CourseCard";
 
 function SkeletonCard() {

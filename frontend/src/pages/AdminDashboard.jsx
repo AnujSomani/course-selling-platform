@@ -27,6 +27,8 @@ import {
   X,
 } from "lucide-react";
 import API from "../api/axios";
+import { useAuth } from "../context/AuthContext";
+import VideoUploader from "../components/VideoUploader";
 
 const emptyCourseForm = {
   title: "",
@@ -79,6 +81,7 @@ function getAdminInfo() {
 function AdminDashboard() {
   const location     = useLocation();
   const navigate     = useNavigate();
+  const { logout }   = useAuth();
   const profileRef   = useRef(null);
 
   const initialSection = new URLSearchParams(location.search).get("section");
@@ -100,6 +103,7 @@ function AdminDashboard() {
   const [deletingCourseId,   setDeletingCourseId]   = useState("");
   const [deletingContentId,  setDeletingContentId]  = useState("");
   const [courseSearch,       setCourseSearch]       = useState("");
+  const [expandedCourses,    setExpandedCourses]    = useState({});
 
   const { email: adminEmail, initials: adminInitials } = getAdminInfo();
 
@@ -210,9 +214,8 @@ function AdminDashboard() {
   }
 
   function handleLogout() {
-    ["adminToken", "userToken", "role", "adminEmail", "userEmail"].forEach(
-      (k) => localStorage.removeItem(k)
-    );
+    logout();
+    toast.success("Signed out");
     navigate("/");
   }
 
@@ -248,6 +251,13 @@ function AdminDashboard() {
   function manageContent(course) {
     setSelectedCourseId(course._id);
     resetContentForm();
+    setExpandedCourses((s) => ({ ...s, [course._id]: true }));
+    openSection("content");
+  }
+
+  function toggleCourseInSidebar(courseId) {
+    setExpandedCourses((s) => ({ ...s, [courseId]: !s[courseId] }));
+    setSelectedCourseId(courseId);
     openSection("content");
   }
 
@@ -294,20 +304,8 @@ function AdminDashboard() {
     }
   }
 
-  async function deleteCourse(course) {
-    if (!window.confirm(`Delete "${course.title || "this course"}"?`)) return;
-    try {
-      setDeletingCourseId(course._id);
-      await API.delete(`/admin/courses/${course._id}`);
-      setCourses((list) => list.filter((c) => c._id !== course._id));
-      if (selectedCourseId === course._id) { setSelectedCourseId(""); setContents([]); }
-      toast.success("Course deleted.");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Unable to delete course.");
-    } finally {
-      setDeletingCourseId("");
-    }
-  }
+  // Note: DELETE /admin/courses/:id not implemented in backend
+  // delete course is disabled
 
   function buildContentPayload() {
     const p = {
@@ -464,13 +462,65 @@ function AdminDashboard() {
             title="Catalog"
             open={sidebarOpen}
             items={[
-              { id: "courses", label: "Courses",       icon: BookOpen   },
-              { id: "create",  label: "Create Course", icon: PlusCircle },
-              { id: "content", label: "Add Content",   icon: Layers     },
+              { id: "courses", label: "All Courses",     icon: BookOpen   },
+              { id: "create",  label: "Create Course",   icon: PlusCircle },
+              { id: "content", label: "Content Studio",  icon: Layers     },
             ]}
             active={activeSection}
             onSelect={(id) => id === "create" ? startCreateCourse() : openSection(id)}
           />
+          {sidebarOpen && courses.length > 0 && (
+            <div>
+              <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">
+                Your Courses
+              </p>
+              <div className="space-y-0.5">
+                {courses.map((course) => (
+                  <div key={course._id}>
+                    <button
+                      type="button"
+                      onClick={() => toggleCourseInSidebar(course._id)}
+                      className={[
+                        "flex h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold transition",
+                        selectedCourseId === course._id && activeSection === "content"
+                          ? "bg-white/10 text-white"
+                          : "text-white/50 hover:bg-white/10 hover:text-white",
+                      ].join(" ")}
+                    >
+                      <BookOpen size={15} className="shrink-0" />
+                      <span className="flex-1 truncate">{course.title || "Untitled"}</span>
+                      <ChevronRight
+                        size={14}
+                        className={`shrink-0 transition-transform ${expandedCourses[course._id] ? "rotate-90" : ""}`}
+                      />
+                    </button>
+                    {expandedCourses[course._id] && (
+                      <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-2">
+                        <button
+                          type="button"
+                          onClick={() => manageContent(course)}
+                          className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs font-semibold text-white/40 hover:bg-white/10 hover:text-white transition"
+                        >
+                          <PlusCircle size={13} /> Add content
+                        </button>
+                        {(selectedCourseId === course._id ? contents : []).slice(0, 5).map((item) => (
+                          <button
+                            key={item._id}
+                            type="button"
+                            onClick={() => { setSelectedCourseId(course._id); startEditContent(item); openSection("content"); }}
+                            className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs font-semibold text-white/40 hover:bg-white/10 hover:text-white transition truncate"
+                          >
+                            <FileText size={13} className="shrink-0" />
+                            <span className="truncate">{item.title}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <NavGroup
             title="Account"
             open={sidebarOpen}
@@ -621,10 +671,8 @@ function AdminDashboard() {
               courseSearch={courseSearch}
               setCourseSearch={setCourseSearch}
               loading={loadingCourses}
-              deletingCourseId={deletingCourseId}
               onCreateCourse={startCreateCourse}
               onEditCourse={startEditCourse}
-              onDeleteCourse={deleteCourse}
               onManageContent={manageContent}
             />
           )}
@@ -656,6 +704,7 @@ function AdminDashboard() {
               onDeleteContent={deleteContent}
               onCancelEdit={resetContentForm}
               onCreateCourse={startCreateCourse}
+              onUploadComplete={(s3Key) => setContentForm((c) => ({ ...c, url: s3Key }))}
             />
           )}
         </main>
@@ -857,7 +906,7 @@ function MetricCard({ label, value, icon: Icon, tone }) {
 }
 
 // ─── CoursesPanel ─────────────────────────────────────────────────────────────
-function CoursesPanel({ courses, courseSearch, setCourseSearch, loading, deletingCourseId, onCreateCourse, onEditCourse, onDeleteCourse, onManageContent }) {
+function CoursesPanel({ courses, courseSearch, setCourseSearch, loading, onCreateCourse, onEditCourse, onManageContent }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white">
       <div className="flex flex-col gap-4 border-b border-slate-100 p-5 lg:flex-row lg:items-center lg:justify-between">
@@ -914,15 +963,6 @@ function CoursesPanel({ courses, courseSearch, setCourseSearch, loading, deletin
                 </button>
                 <button type="button" onClick={() => onEditCourse(course)} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50">
                   <Edit3 size={14} /> Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDeleteCourse(course)}
-                  disabled={deletingCourseId === course._id}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-100 bg-white px-3 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
-                >
-                  {deletingCourseId === course._id ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
-                  Delete
                 </button>
               </div>
             </article>
@@ -1005,7 +1045,7 @@ function CourseFormPanel({ courseForm, editingCourseId, savingCourse, onChange, 
 }
 
 // ─── ContentPanel ─────────────────────────────────────────────────────────────
-function ContentPanel({ courses, selectedCourseId, selectedCourse, contents, contentForm, editingContentId, loadingContent, savingContent, deletingContentId, onSelectCourse, onChange, onSubmit, onEditContent, onDeleteContent, onCancelEdit, onCreateCourse }) {
+function ContentPanel({ courses, selectedCourseId, selectedCourse, contents, contentForm, editingContentId, loadingContent, savingContent, deletingContentId, onSelectCourse, onChange, onSubmit, onEditContent, onDeleteContent, onCancelEdit, onCreateCourse, onUploadComplete }) {
   return (
     <section className="grid gap-6 xl:grid-cols-[400px_1fr]">
       <form onSubmit={onSubmit} className="h-fit rounded-xl border border-slate-200 bg-white">
@@ -1049,7 +1089,17 @@ function ContentPanel({ courses, selectedCourseId, selectedCourse, contents, con
                 placeholder="Write lesson notes here." />
             </label>
           ) : (
-            <FormInput label="URL" name="url" value={contentForm.url} onChange={onChange} placeholder="https://..." required />
+            <>
+              {contentForm.type === "video" && selectedCourseId && (
+                <div>
+                  <span className="text-sm font-semibold text-slate-700">Upload video</span>
+                  <div className="mt-1.5">
+                    <VideoUploader courseId={selectedCourseId} onUploadComplete={onUploadComplete} />
+                  </div>
+                </div>
+              )}
+              <FormInput label="URL / S3 Key" name="url" value={contentForm.url} onChange={onChange} placeholder="Paste URL or upload above" required />
+            </>
           )}
           <div className="grid grid-cols-[1fr_auto] items-end gap-3">
             <FormInput label="Order" name="order" value={contentForm.order} onChange={onChange} placeholder="1" type="number" min="0" />

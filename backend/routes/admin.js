@@ -110,7 +110,7 @@ adminRouter.post("/resend-verification-code", resendLimiter, async function (req
 adminRouter.post("/courses", adminMiddleware, async function (req, res) {
   try {
     const adminId = req.userId;
-    const { title, description, imageUrl, price } = req.body;
+    const { title, description, imageUrl, price, category, level, originalPrice } = req.body;
 
     if (!title || !description || price === undefined) {
       return res.status(400).json({ message: "title, description and price are required" });
@@ -121,6 +121,9 @@ adminRouter.post("/courses", adminMiddleware, async function (req, res) {
       description,
       imageUrl,
       price,
+      category: category || "",
+      level: level || "Beginner",
+      ...(originalPrice !== undefined ? { originalPrice } : {}),
       creatorId: adminId,
     });
 
@@ -137,7 +140,7 @@ adminRouter.post("/courses", adminMiddleware, async function (req, res) {
 adminRouter.put("/courses", adminMiddleware, async function (req, res) {
   try {
     const adminId = req.userId;
-    const { courseId, title, description, imageUrl, price } = req.body;
+    const { courseId, title, description, imageUrl, price, category, level, originalPrice } = req.body;
 
     if (!courseId) {
       return res.status(400).json({ message: "courseId is required" });
@@ -155,6 +158,9 @@ adminRouter.put("/courses", adminMiddleware, async function (req, res) {
         ...(description !== undefined ? { description } : {}),
         ...(imageUrl !== undefined ? { imageUrl } : {}),
         ...(price !== undefined ? { price } : {}),
+        ...(category !== undefined ? { category } : {}),
+        ...(level !== undefined ? { level } : {}),
+        ...(originalPrice !== undefined ? { originalPrice } : {}),
       }
     );
 

@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, ReceiptText } from "lucide-react";
 import API from "../api/axios";
-import Footer from "../components/landing/Footer";
-import Navbar from "../components/landing/Navbar";
+import Footer from "../components/Footer";
+import Navbar from "../components/Navbar";
 
 const fallbackImage =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format";
@@ -32,7 +32,10 @@ function Purchases() {
     };
   }, []);
 
-  const purchasedCourses = purchases.map((purchase) => purchase.courseId).filter(Boolean);
+  const purchasedCourses = purchases
+    .filter((p) => p.status === "completed")
+    .map((purchase) => purchase.courseId)
+    .filter(Boolean);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -80,6 +83,7 @@ function Purchases() {
                   src={course.imageUrl || fallbackImage}
                   alt={course.title}
                   className="h-44 w-full object-cover"
+                  onError={(e) => { e.target.src = fallbackImage; }}
                 />
                 <div className="p-5">
                   <p className="text-xs font-bold text-blue-900">

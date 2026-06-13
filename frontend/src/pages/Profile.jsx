@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { Lock, Mail, Save, ShieldCheck, UserCircle } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { Navigate } from "react-router-dom";
-import API from "../api/axios";
-import Footer from "../components/landing/Footer";
-import Navbar from "../components/landing/Navbar";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import { useAuth } from "../context/AuthContext";
 
 const initialPasswordForm = {
   currentPassword: "",
@@ -12,52 +12,17 @@ const initialPasswordForm = {
   confirmPassword: "",
 };
 
-function isExpired(token) {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp ? payload.exp * 1000 <= Date.now() : false;
-  } catch {
-    return true;
-  }
-}
-
 function Profile() {
-  const role = localStorage.getItem("role") || "user";
-  const token = localStorage.getItem(role === "admin" ? "adminToken" : "userToken");
-  const storedEmail = localStorage.getItem(role === "admin" ? "adminEmail" : "userEmail") || "";
-  const [account, setAccount] = useState(null);
+  const { user } = useAuth();
   const [passwordForm, setPasswordForm] = useState(initialPasswordForm);
   const [saving, setSaving] = useState(false);
 
-  const endpointBase = role === "admin" ? "/admin" : "/user";
-  const email = account?.email || storedEmail || "SkillHub member";
-  const fullName = `${account?.firstname || ""} ${account?.lastname || ""}`.trim();
-
-  useEffect(() => {
-    if (!token) return;
-
-    async function fetchAccount() {
-      try {
-        const response = await API.get(`${endpointBase}/me`);
-        const profile = response.data.admin || response.data.user;
-        setAccount(profile);
-        if (profile?.email) {
-          localStorage.setItem(role === "admin" ? "adminEmail" : "userEmail", profile.email);
-        }
-      } catch (error) {
-        toast.error(error.response?.data?.message || "Unable to load profile.");
-      }
-    }
-
-    fetchAccount();
-  }, [endpointBase, role, token]);
-
-  if (!token || isExpired(token)) {
-    localStorage.removeItem("userToken");
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("role");
+  if (!user) {
     return <Navigate to="/signin" replace />;
   }
+
+  const role = user.role;
+  const email = user.email || "SkillHub member";
 
   function handlePasswordChange(event) {
     const { name, value } = event.target;
@@ -72,19 +37,10 @@ function Profile() {
       return;
     }
 
-    try {
-      setSaving(true);
-      await API.put(`${endpointBase}/change-password`, {
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-      });
-      setPasswordForm(initialPasswordForm);
-      toast.success("Password updated successfully.");
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to update password.");
-    } finally {
-      setSaving(false);
-    }
+    // Note: change-password endpoint not yet implemented in backend
+    toast.error("Password change feature coming soon.");
+    setPasswordForm(initialPasswordForm);
+    setSaving(false);
   }
 
   return (
@@ -95,7 +51,7 @@ function Profile() {
         <div className="mb-8">
           <h1 className="text-4xl font-black text-blue-950">My Profile</h1>
           <p className="mt-1 text-base text-gray-500">
-            {fullName ? `${fullName}, manage your SkillHub access and security.` : "Manage your SkillHub access and security."}
+            Manage your SkillHub access and security.
           </p>
         </div>
 
@@ -106,7 +62,7 @@ function Profile() {
               <UserCircle size={56} />
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-950">{fullName || email}</h3>
+              <h3 className="text-2xl font-bold text-gray-950">{email}</h3>
             </div>
           </div>
 
@@ -127,7 +83,7 @@ function Profile() {
             <div className="flex items-start gap-3">
               <UserCircle className="mt-1 shrink-0 text-blue-900" size={24} />
               <p className="leading-7 text-blue-950">
-                Your account is active and ready for launcing new exciting courses
+                Your account is active and ready{role === "admin" ? " for launching new exciting courses" : " for learning"}.
               </p>
             </div>
           </div>
