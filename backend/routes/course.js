@@ -52,6 +52,7 @@ courseRouter.post("/purchase", userMiddleware, async (req, res) => {
     await purchaseModel.create({ userId, courseId, status: "completed", amount: 0, currency: "INR" });
     return res.status(201).json({ message: "Course enrolled successfully" });
   } catch (e) {
+    console.error("[course/purchase] Error:", e.message, e.code);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
