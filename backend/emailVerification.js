@@ -7,10 +7,12 @@ function getTransporter() {
   if (_transporter) return _transporter;
 
   _transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.resend.com",
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: "resend",
+      pass: process.env.RESEND_API_KEY,
     },
   });
 
@@ -29,7 +31,7 @@ async function sendEmail(to, code, { subject, firstName } = {}) {
   const greeting = firstName ? `Hi ${firstName},` : "Hi,";
 
   await getTransporter().sendMail({
-    from: `"Upskilio" <${process.env.EMAIL_USER}>`,
+    from: `"Upskilio" <onboarding@resend.dev>`,
     to,
     subject: subject || "Your Upskilio verification code",
     text: `${greeting}\n\nYour verification code is: ${code}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, ignore this email.`,
