@@ -30,6 +30,7 @@ const REQUIRED_ENV = [
     "CLOUDFRONT_KEY_PAIR_ID",
     "CLOUDFRONT_PRIVATE_KEY",
     "FRONTEND_URL",
+    "RESEND_API_KEY",
 ];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
 if (missing.length > 0) {
