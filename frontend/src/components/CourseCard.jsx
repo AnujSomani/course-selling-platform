@@ -1,25 +1,33 @@
 import { ArrowRight, Star, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
+// DEPENDENCY: Fallback image sourced from Unsplash CDN. Replace with self-hosted S3/CloudFront URL for full independence.
+const FALLBACK_IMG =
+  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop";
+
+const LEVEL_COLORS = {
+  Beginner: "bg-green-100 text-green-800",
+  Intermediate: "bg-yellow-100 text-yellow-800",
+  Advanced: "bg-red-100 text-red-800",
+};
+
 function CourseCard({ course }) {
   if (!course) return null;
 
   const title = course.title || "Untitled Course";
   const category = course.category || "General";
   const level = course.level || "Beginner";
-  const rating = typeof course.rating === "number" ? course.rating.toFixed(1) : "New";
+  // Only show rating if it's a real non-zero value
+  const rating =
+    typeof course.rating === "number" && course.rating > 0
+      ? course.rating.toFixed(1)
+      : null;
   const students = course.totalStudents || 0;
   const price = course.price ?? 0;
   const originalPrice = course.originalPrice || null;
-  const imageUrl =
-    course.imageUrl ||
-    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop";
-
-  const levelColor = {
-    Beginner: "bg-green-100 text-green-800",
-    Intermediate: "bg-yellow-100 text-yellow-800",
-    Advanced: "bg-red-100 text-red-800",
-  }[level] || "bg-blue-100 text-blue-800";
+  const imageUrl = course.imageUrl || FALLBACK_IMG;
+  const levelColor = LEVEL_COLORS[level] || "bg-blue-100 text-blue-800";
+  const isFree = price === 0;
 
   return (
     <Link
@@ -32,10 +40,11 @@ function CourseCard({ course }) {
         <img
           src={imageUrl}
           alt={title}
+          loading="lazy"
           className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
           onError={(e) => {
-            e.target.src =
-              "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop";
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = FALLBACK_IMG;
           }}
         />
       </div>
@@ -44,7 +53,9 @@ function CourseCard({ course }) {
       <div className="p-5">
         {/* Category + Level */}
         <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{category}</p>
+          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
+            {category}
+          </p>
           <span className={`${levelColor} px-2.5 py-1 rounded-full text-xs font-semibold`}>
             {level}
           </span>
@@ -57,11 +68,15 @@ function CourseCard({ course }) {
 
         {/* Rating + Students */}
         <div className="mt-4 flex items-center gap-3">
-          <div className="flex items-center gap-1 text-yellow-500">
-            <Star size={14} fill="currentColor" />
-            <span className="text-sm font-bold text-gray-900">{rating}</span>
-          </div>
-          <span className="text-gray-200">|</span>
+          {rating && (
+            <>
+              <div className="flex items-center gap-1 text-yellow-500">
+                <Star size={14} fill="currentColor" />
+                <span className="text-sm font-bold text-gray-900">{rating}</span>
+              </div>
+              <span className="text-gray-200">|</span>
+            </>
+          )}
           <div className="flex items-center gap-1 text-gray-400">
             <Users size={13} />
             <span className="text-xs">{students.toLocaleString()} students</span>
@@ -71,11 +86,19 @@ function CourseCard({ course }) {
         {/* Price + Enroll */}
         <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-blue-900">₹{price.toLocaleString()}</span>
-            {originalPrice && (
-              <span className="text-sm text-gray-400 line-through">
-                ₹{originalPrice.toLocaleString()}
-              </span>
+            {isFree ? (
+              <span className="text-xl font-bold text-green-600">Free</span>
+            ) : (
+              <>
+                <span className="text-xl font-bold text-blue-900">
+                  ₹{price.toLocaleString()}
+                </span>
+                {originalPrice && originalPrice > price && (
+                  <span className="text-sm text-gray-400 line-through">
+                    ₹{originalPrice.toLocaleString()}
+                  </span>
+                )}
+              </>
             )}
           </div>
           <div className="flex items-center gap-1 text-blue-900 font-semibold text-sm group-hover:gap-2 transition-all duration-200">

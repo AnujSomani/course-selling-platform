@@ -1,33 +1,15 @@
-// backend/routes/stream.js
-//
-// Mounts on: /api/v1/stream
-//
-// Generates short-lived CloudFront signed URLs for video playback.
-// Only purchased users (or admins for preview) can get a stream URL.
-// The URL expires in 2 hours — prevents link sharing.
-//
-// Routes:
-//   GET /url/:contentId   → returns a signed CloudFront streaming URL
-
 const express = require("express");
 const router = express.Router();
 const { getSignedUrl } = require("@aws-sdk/cloudfront-signer");
 
-const { userMiddleware } = require("../middlewares/user"); // Fix #4: was ../middlewares/auth
+const { userMiddleware } = require("../middlewares/user");
 const { contentModel, purchaseModel } = require("../db");
 
-const CF_DOMAIN = process.env.CLOUDFRONT_DOMAIN;          // e.g. d1234abcd.cloudfront.net
+const CF_DOMAIN = process.env.CLOUDFRONT_DOMAIN;
 const CF_KEY_PAIR_ID = process.env.CLOUDFRONT_KEY_PAIR_ID;
-// Fix #5: guard against undefined before calling .replace() — avoids crash at startup
 const CF_PRIVATE_KEY = (process.env.CLOUDFRONT_PRIVATE_KEY || "").replace(/\\n/g, "\n");
-// Private key stored in .env as single line with \n — replace back to real newlines
+const STREAM_URL_EXPIRY_SECONDS = 60 * 60 * 2;
 
-const STREAM_URL_EXPIRY_SECONDS = 60 * 60 * 2; // 2 hours
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GET /api/v1/stream/url/:contentId
-// Auth: user JWT required
-// ─────────────────────────────────────────────────────────────────────────────
 router.get("/url/:contentId", userMiddleware, async (req, res) => {
   const { contentId } = req.params;
   const userId = req.userId;

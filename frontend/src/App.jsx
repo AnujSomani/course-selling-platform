@@ -12,11 +12,13 @@ import CoursesPage from "./pages/CoursesPage";
 import CourseDetailPage from "./pages/CourseDetailPage";
 import LegalPage from "./pages/LegalPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import about from "./pages/About";
+import About from "./pages/About";
+import Loader from "./components/Loader";
 
 function App() {
   return (
     <>
+      <Loader />
       <Toaster
         position="top-right"
         toastOptions={{
@@ -46,7 +48,7 @@ function App() {
         <Route path="/terms-and-conditions" element={<LegalPage type="terms" />} />
         <Route path="/privacy-policy" element={<LegalPage type="privacy" />} />
         <Route path="/refund-and-cancellation" element={<LegalPage type="refund" />} />
-        <Route path ="/about" element = {<about/>}/>
+        <Route path="/about" element={<About />} />
 
         <Route
           path="/profile"

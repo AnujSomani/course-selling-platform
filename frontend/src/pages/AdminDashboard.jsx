@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3,
@@ -20,7 +20,6 @@ import {
   RefreshCw,
   Save,
   Search,
-  ShoppingBag,
   Trash2,
   UserCircle,
   Video,
@@ -31,79 +30,60 @@ import { useAuth } from "../context/AuthContext";
 import VideoUploader from "../components/VideoUploader";
 
 const emptyCourseForm = {
-  title: "",
-  description: "",
-  imageUrl: "",
-  price: "",
-  originalPrice: "",
-  category: "",
-  level: "Beginner",
+  title: "", description: "", imageUrl: "", price: "",
+  originalPrice: "", category: "", level: "Beginner",
 };
 
 const emptyContentForm = {
-  type: "video",
-  title: "",
-  url: "",
-  text: "",
-  order: "",
-  isPreview: false,
+  type: "video", title: "", url: "", text: "", order: "", isPreview: false,
 };
 
 const levels = ["Beginner", "Intermediate", "Advanced"];
+
 const contentTypes = [
-  { value: "video", label: "Video", icon: Video },
-  { value: "pdf",   label: "PDF",   icon: FileText },
-  { value: "link",  label: "Link",  icon: LinkIcon },
-  { value: "text",  label: "Text",  icon: FileText },
+  { value: "video", label: "Video",    icon: Video    },
+  { value: "pdf",   label: "PDF",      icon: FileText },
+  { value: "link",  label: "Link",     icon: LinkIcon },
+  { value: "text",  label: "Text",     icon: FileText },
 ];
 
 const fallbackImage =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format";
 
-const MOMENTUM_BARS   = [32, 48, 41, 63, 57, 78];
-const MOMENTUM_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
 function getAdminInfo() {
-  const email    = localStorage.getItem("adminEmail") || "admin@skillhub.com";
+  const email = localStorage.getItem("adminEmail") || "admin@upskilio.com";
   const initials =
-    email
-      .split("@")[0]
-      .split(/[._-]/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((p) => p.charAt(0).toUpperCase())
-      .join("") || "AD";
+    email.split("@")[0].split(/[._-]/).filter(Boolean).slice(0, 2)
+      .map((p) => p.charAt(0).toUpperCase()).join("") || "AD";
   return { email, initials };
 }
 
-// ─── AdminDashboard ───────────────────────────────────────────────────────────
 function AdminDashboard() {
-  const location     = useLocation();
-  const navigate     = useNavigate();
-  const { logout }   = useAuth();
-  const profileRef   = useRef(null);
+  const location   = useLocation();
+  const navigate   = useNavigate();
+  const { logout } = useAuth();
+  const profileRef = useRef(null);
 
   const initialSection = new URLSearchParams(location.search).get("section");
-  const [activeSection,      setActiveSection]      = useState(initialSection === "courses" ? "courses" : "dashboard");
-  const [sidebarOpen,        setSidebarOpen]        = useState(true);
-  const [mobileSidebarOpen,  setMobileSidebarOpen]  = useState(false);
-  const [profileOpen,        setProfileOpen]        = useState(false);
-  const [courses,            setCourses]            = useState([]);
-  const [contents,           setContents]           = useState([]);
-  const [courseForm,         setCourseForm]         = useState(emptyCourseForm);
-  const [contentForm,        setContentForm]        = useState(emptyContentForm);
-  const [editingCourseId,    setEditingCourseId]    = useState("");
-  const [editingContentId,   setEditingContentId]   = useState("");
-  const [selectedCourseId,   setSelectedCourseId]   = useState("");
-  const [loadingCourses,     setLoadingCourses]     = useState(true);
-  const [loadingContent,     setLoadingContent]     = useState(false);
-  const [savingCourse,       setSavingCourse]       = useState(false);
-  const [savingContent,      setSavingContent]      = useState(false);
-  const [deletingCourseId,   setDeletingCourseId]   = useState("");
-  const [deletingContentId,  setDeletingContentId]  = useState("");
-  const [courseSearch,       setCourseSearch]       = useState("");
-  const [expandedCourses,    setExpandedCourses]    = useState({});
+  const [activeSection,     setActiveSection]     = useState(initialSection === "courses" ? "courses" : "dashboard");
+  const [sidebarOpen,       setSidebarOpen]       = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [profileOpen,       setProfileOpen]       = useState(false);
+  const [courses,           setCourses]           = useState([]);
+  const [contents,          setContents]          = useState([]);
+  const [courseForm,        setCourseForm]        = useState(emptyCourseForm);
+  const [contentForm,       setContentForm]       = useState(emptyContentForm);
+  const [editingCourseId,   setEditingCourseId]   = useState("");
+  const [editingContentId,  setEditingContentId]  = useState("");
+  const [selectedCourseId,  setSelectedCourseId]  = useState("");
+  const [loadingCourses,    setLoadingCourses]    = useState(true);
+  const [loadingContent,    setLoadingContent]    = useState(false);
+  const [savingCourse,      setSavingCourse]      = useState(false);
+  const [savingContent,     setSavingContent]     = useState(false);
+  const [deletingCourseId,  setDeletingCourseId]  = useState("");
+  const [deletingContentId, setDeletingContentId] = useState("");
+  const [courseSearch,      setCourseSearch]      = useState("");
 
   const { email: adminEmail, initials: adminInitials } = getAdminInfo();
 
@@ -112,38 +92,33 @@ function AdminDashboard() {
     const term = courseSearch.trim().toLowerCase();
     if (!term) return courses;
     return courses.filter((c) =>
-      [c.title, c.category, c.level].some((v) =>
-        String(v || "").toLowerCase().includes(term)
-      )
+      [c.title, c.category, c.level].some((v) => String(v || "").toLowerCase().includes(term))
     );
   }, [courses, courseSearch]);
 
   const stats = useMemo(() => {
-    const learners     = courses.reduce((t, c) => t + (c.totalStudents || 0), 0);
-    const categories   = new Set(courses.map((c) => c.category).filter(Boolean)).size;
-    const value        = courses.reduce((t, c) => t + Number(c.price || 0), 0);
-    const previewItems = contents.filter((c) => c.isPreview).length;
-    return { learners, categories, value, previewItems };
+    const learners   = courses.reduce((t, c) => t + (c.totalStudents || 0), 0);
+    const categories = new Set(courses.map((c) => c.category).filter(Boolean)).size;
+    const value      = courses.reduce((t, c) => t + Number(c.price || 0), 0);
+    const previews   = contents.filter((c) => c.isPreview).length;
+    return { learners, categories, value, previews };
   }, [courses, contents]);
 
-  // close profile dropdown on outside click
   useEffect(() => {
     function handler(e) {
-      if (profileRef.current && !profileRef.current.contains(e.target)) {
-        setProfileOpen(false);
-      }
+      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // load courses
+  // Load courses
   useEffect(() => {
     let ignore = false;
     async function load() {
       try {
         setLoadingCourses(true);
-        const res = await API.get("/admin/bulk");
+        const res  = await API.get("/admin/bulk");
         const list = res.data.courses || [];
         if (!ignore) {
           setCourses(list);
@@ -159,7 +134,6 @@ function AdminDashboard() {
     return () => { ignore = true; };
   }, []);
 
-  // load content for selected course
   useEffect(() => {
     let ignore = false;
     async function load() {
@@ -229,7 +203,12 @@ function AdminDashboard() {
 
   function handleContentChange(e) {
     const { name, value, type, checked } = e.target;
-    setContentForm((c) => ({ ...c, [name]: type === "checkbox" ? checked : value }));
+    setContentForm((c) => {
+      const updated = { ...c, [name]: type === "checkbox" ? checked : value };
+      // Reset URL when content type changes so a stale S3 key never carries over
+      if (name === "type") updated.url = "";
+      return updated;
+    });
   }
 
   function startCreateCourse() { resetCourseForm(); openSection("create"); }
@@ -251,13 +230,6 @@ function AdminDashboard() {
   function manageContent(course) {
     setSelectedCourseId(course._id);
     resetContentForm();
-    setExpandedCourses((s) => ({ ...s, [course._id]: true }));
-    openSection("content");
-  }
-
-  function toggleCourseInSidebar(courseId) {
-    setExpandedCourses((s) => ({ ...s, [courseId]: !s[courseId] }));
-    setSelectedCourseId(courseId);
     openSection("content");
   }
 
@@ -277,8 +249,8 @@ function AdminDashboard() {
   async function handleCourseSubmit(e) {
     e.preventDefault();
     const payload = buildCoursePayload();
-    if (!payload.title || Number.isNaN(payload.price) || payload.price <= 0) {
-      toast.error("Add a course title and a valid price.");
+    if (!payload.title || Number.isNaN(payload.price) || payload.price < 0) {
+      toast.error("Add a course title and a valid price (0 for free).");
       return;
     }
     try {
@@ -304,8 +276,20 @@ function AdminDashboard() {
     }
   }
 
-  // Note: DELETE /admin/courses/:id not implemented in backend
-  // delete course is disabled
+  async function deleteCourse(course) {
+    if (!window.confirm(`Delete "${course.title || "this course"}" and all its content? This cannot be undone.`)) return;
+    try {
+      setDeletingCourseId(course._id);
+      await API.delete(`/admin/courses/${course._id}`);
+      setCourses((list) => list.filter((c) => c._id !== course._id));
+      if (selectedCourseId === course._id) { setSelectedCourseId(""); setContents([]); resetContentForm(); }
+      toast.success("Course deleted.");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Unable to delete course.");
+    } finally {
+      setDeletingCourseId("");
+    }
+  }
 
   function buildContentPayload() {
     const p = {
@@ -323,10 +307,7 @@ function AdminDashboard() {
     e.preventDefault();
     if (!selectedCourseId) { toast.error("Select a course first."); return; }
     const payload = buildContentPayload();
-    if (!payload.title || Number.isNaN(payload.order)) {
-      toast.error("Add a title and a valid order.");
-      return;
-    }
+    if (!payload.title || Number.isNaN(payload.order)) { toast.error("Add a title and a valid order."); return; }
     if ((payload.type === "text" && !payload.text) || (payload.type !== "text" && !payload.url)) {
       toast.error(payload.type === "text" ? "Add lesson text." : "Add a content URL.");
       return;
@@ -383,267 +364,149 @@ function AdminDashboard() {
     content:   "Course Content",
   };
 
-  // profile dropdown items — mirrors Navbar admin menu
   const profileMenuItems = [
-    { label: "Dashboard",    onClick: () => openSection("dashboard"), icon: BarChart3 },
-    { label: "Your Courses", onClick: () => openSection("courses"),   icon: BookOpen  },
-    { label: "My Profile",   to: "/profile",                          icon: UserCircle },
+    { label: "My Dashboard",  onClick: () => openSection("dashboard"), icon: BarChart3   },
+    { label: "Your Courses",  onClick: () => openSection("courses"),   icon: BookOpen    },
+    { label: "My Profile",    to: "/profile",                          icon: UserCircle  },
   ];
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-950">
-      <Toaster position="top-right" />
 
-      {/* mobile overlay */}
       {mobileSidebarOpen && (
-        <button
-          type="button"
-          aria-label="Close sidebar"
-          onClick={() => setMobileSidebarOpen(false)}
-          className="fixed inset-0 z-30 bg-slate-950/40 lg:hidden"
-        />
+        <button type="button" aria-label="Close sidebar" onClick={() => setMobileSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-950/40 lg:hidden" />
       )}
 
       {/* ── SIDEBAR ── */}
       <aside
         style={{
-          width:     sidebarOpen ? "260px" : "72px",
-          minWidth:  sidebarOpen ? "260px" : "72px",
-          transition: "width 280ms cubic-bezier(0.4,0,0.2,1), min-width 280ms cubic-bezier(0.4,0,0.2,1)",
+          width:    sidebarOpen ? "240px" : "64px",
+          minWidth: sidebarOpen ? "240px" : "64px",
+          transition: "width 260ms cubic-bezier(0.4,0,0.2,1), min-width 260ms cubic-bezier(0.4,0,0.2,1)",
         }}
         className={[
-          "fixed inset-y-0 left-0 z-40 flex flex-col bg-[#0b1f3a] text-white overflow-hidden",
+          "fixed inset-y-0 left-0 z-40 flex flex-col overflow-hidden",
+          "bg-white border-r border-slate-200",
           "lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         ].join(" ")}
       >
-        {/* logo */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-4">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500 font-black text-sm text-white">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
+          <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-900 font-black text-sm text-white">
               S
             </div>
             {sidebarOpen && (
-              <span className="whitespace-nowrap font-extrabold tracking-tight">
-                Skill<span className="text-blue-400">Hub</span>
+              <span className="whitespace-nowrap font-extrabold tracking-tight text-slate-900">
+                Upskil<span className="text-blue-600">io</span>
               </span>
             )}
           </div>
-          {/* collapse — desktop */}
-          <button
-            type="button"
-            onClick={() => setSidebarOpen((v) => !v)}
-            className="hidden lg:flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/50 transition hover:bg-white/10 hover:text-white"
+          <button type="button" onClick={() => setSidebarOpen((v) => !v)}
             aria-label="Toggle sidebar"
-          >
+            className="hidden lg:flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition">
             {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
           </button>
-          {/* close — mobile */}
-          <button
-            type="button"
-            onClick={() => setMobileSidebarOpen(false)}
-            className="flex lg:hidden h-7 w-7 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"
-            aria-label="Close sidebar"
-          >
+          {/* Mobile close */}
+          <button type="button" onClick={() => setMobileSidebarOpen(false)}
+            className="flex lg:hidden h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            aria-label="Close sidebar">
             <X size={16} />
           </button>
         </div>
 
-        {/* nav */}
-        <nav className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-2 py-4">
-          <NavGroup
-            title="Overview"
-            open={sidebarOpen}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-5">
+          <NavGroup title="Overview" open={sidebarOpen}
             items={[{ id: "dashboard", label: "Dashboard", icon: BarChart3 }]}
-            active={activeSection}
-            onSelect={openSection}
-          />
-          <NavGroup
-            title="Catalog"
-            open={sidebarOpen}
+            active={activeSection} onSelect={openSection} />
+          <NavGroup title="Catalog" open={sidebarOpen}
             items={[
-              { id: "courses", label: "All Courses",     icon: BookOpen   },
-              { id: "create",  label: "Create Course",   icon: PlusCircle },
-              { id: "content", label: "Content Studio",  icon: Layers     },
+              { id: "courses", label: "All Courses",    icon: BookOpen   },
+              { id: "create",  label: "Create Course",  icon: PlusCircle },
+              { id: "content", label: "Content Studio", icon: Layers     },
             ]}
             active={activeSection}
-            onSelect={(id) => id === "create" ? startCreateCourse() : openSection(id)}
-          />
-          {sidebarOpen && courses.length > 0 && (
-            <div>
-              <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">
-                Your Courses
-              </p>
-              <div className="space-y-0.5">
-                {courses.map((course) => (
-                  <div key={course._id}>
-                    <button
-                      type="button"
-                      onClick={() => toggleCourseInSidebar(course._id)}
-                      className={[
-                        "flex h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold transition",
-                        selectedCourseId === course._id && activeSection === "content"
-                          ? "bg-white/10 text-white"
-                          : "text-white/50 hover:bg-white/10 hover:text-white",
-                      ].join(" ")}
-                    >
-                      <BookOpen size={15} className="shrink-0" />
-                      <span className="flex-1 truncate">{course.title || "Untitled"}</span>
-                      <ChevronRight
-                        size={14}
-                        className={`shrink-0 transition-transform ${expandedCourses[course._id] ? "rotate-90" : ""}`}
-                      />
-                    </button>
-                    {expandedCourses[course._id] && (
-                      <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-2">
-                        <button
-                          type="button"
-                          onClick={() => manageContent(course)}
-                          className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs font-semibold text-white/40 hover:bg-white/10 hover:text-white transition"
-                        >
-                          <PlusCircle size={13} /> Add content
-                        </button>
-                        {(selectedCourseId === course._id ? contents : []).slice(0, 5).map((item) => (
-                          <button
-                            key={item._id}
-                            type="button"
-                            onClick={() => { setSelectedCourseId(course._id); startEditContent(item); openSection("content"); }}
-                            className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs font-semibold text-white/40 hover:bg-white/10 hover:text-white transition truncate"
-                          >
-                            <FileText size={13} className="shrink-0" />
-                            <span className="truncate">{item.title}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <NavGroup
-            title="Account"
-            open={sidebarOpen}
+            onSelect={(id) => id === "create" ? startCreateCourse() : openSection(id)} />
+          <NavGroup title="Account" open={sidebarOpen}
             items={[{ id: "profile", label: "My Profile", icon: UserCircle, href: "/profile" }]}
-            active={activeSection}
-            onSelect={openSection}
-          />
+            active={activeSection} onSelect={openSection} />
         </nav>
 
-        {/* logout */}
-        <div className="shrink-0 border-t border-white/10 p-3">
-          <button
-            type="button"
-            onClick={handleLogout}
+      
+        <div className="shrink-0 border-t border-slate-100 p-3">
+          <button type="button" onClick={handleLogout}
             className={[
               "flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-semibold",
-              "text-white/60 transition hover:bg-white/10 hover:text-white",
+              "text-slate-500 transition hover:bg-red-50 hover:text-red-600",
               sidebarOpen ? "justify-start" : "justify-center",
-            ].join(" ")}
-          >
+            ].join(" ")}>
             <LogOut size={17} className="shrink-0" />
             {sidebarOpen && <span>Logout</span>}
           </button>
         </div>
       </aside>
 
-      {/* ── MAIN ── */}
+  
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* ── TOPBAR ── */}
+        {/* Topbar */}
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 sm:px-6">
-          {/* mobile burger */}
-          <button
-            type="button"
-            onClick={() => setMobileSidebarOpen(true)}
+          <button type="button" onClick={() => setMobileSidebarOpen(true)}
             className="flex lg:hidden h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600"
-            aria-label="Open sidebar"
-          >
+            aria-label="Open sidebar">
             <Menu size={18} />
           </button>
 
-          {/* page title */}
-          <h1 className="hidden lg:block text-lg font-bold text-slate-900">
+          <h1 className="hidden lg:block text-base font-bold text-slate-900">
             {sectionLabels[activeSection] || "Dashboard"}
           </h1>
 
-          {/* right side */}
           <div className="ml-auto flex items-center gap-2">
-            {/* view site */}
-            <Link
-              to="/"
-              className="hidden sm:inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-            >
-              <Eye size={15} />
-              View site
+            <Link to="/"
+              className="hidden sm:inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+              <Eye size={15} /> View site
             </Link>
-
-            {/* refresh */}
-            <button
-              type="button"
-              onClick={refreshCourses}
-              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50"
-              aria-label="Refresh"
-            >
+            <button type="button" onClick={refreshCourses}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+              aria-label="Refresh">
               <RefreshCw size={15} />
             </button>
 
-            {/* ── PROFILE DROPDOWN ── */}
+          
             <div ref={profileRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setProfileOpen((v) => !v)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-900 text-sm font-bold text-white transition hover:bg-blue-800 ring-4 ring-blue-50 hover:ring-blue-100"
-                aria-expanded={profileOpen}
-                aria-label="Open profile menu"
-                title={adminEmail}
-              >
+              <button type="button" onClick={() => setProfileOpen((v) => !v)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-900 text-sm font-bold text-white transition hover:bg-blue-800 ring-2 ring-blue-100"
+                aria-expanded={profileOpen} aria-label="Open profile menu" title={adminEmail}>
                 {adminInitials}
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl z-50">
-                  {/* email header */}
+                <div className="absolute right-0 mt-2 w-60 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl z-50">
                   <div className="px-3 py-2 mb-1 border-b border-slate-100">
                     <p className="text-xs font-semibold text-slate-400">Signed in as</p>
                     <p className="text-sm font-bold text-slate-800 truncate">{adminEmail}</p>
                   </div>
-
                   {profileMenuItems.map((item) => {
                     const Icon = item.icon;
                     if (item.to) {
                       return (
-                        <Link
-                          key={item.label}
-                          to={item.to}
-                          onClick={() => setProfileOpen(false)}
-                          className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-blue-50 hover:text-blue-900"
-                        >
-                          <Icon size={17} />
-                          {item.label}
+                        <Link key={item.label} to={item.to} onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                          <Icon size={16} className="text-slate-400" /> {item.label}
                         </Link>
                       );
                     }
                     return (
-                      <button
-                        key={item.label}
-                        type="button"
-                        onClick={item.onClick}
-                        className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-800 transition hover:bg-blue-50 hover:text-blue-900"
-                      >
-                        <Icon size={17} />
-                        {item.label}
+                      <button key={item.label} type="button" onClick={item.onClick}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                        <Icon size={16} className="text-slate-400" /> {item.label}
                       </button>
                     );
                   })}
-
                   <div className="mt-1 border-t border-slate-100 pt-1">
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                    >
-                      <LogOut size={17} />
-                      Logout
+                    <button type="button" onClick={handleLogout}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50">
+                      <LogOut size={16} /> Logout
                     </button>
                   </div>
                 </div>
@@ -652,60 +515,35 @@ function AdminDashboard() {
           </div>
         </header>
 
-        {/* page content */}
+        {/* Page content */}
         <main className="flex-1 px-4 py-6 sm:px-6">
           {activeSection === "dashboard" && (
-            <DashboardHome
-              courses={courses}
-              contents={contents}
-              stats={stats}
-              loading={loadingCourses}
-              onCreateCourse={startCreateCourse}
-              onManageContent={manageContent}
-              onOpenCourses={() => openSection("courses")}
-            />
+            <DashboardHome courses={courses} contents={contents} stats={stats}
+              loading={loadingCourses} onCreateCourse={startCreateCourse}
+              onManageContent={manageContent} onOpenCourses={() => openSection("courses")} />
           )}
           {activeSection === "courses" && (
-            <CoursesPanel
-              courses={filteredCourses}
-              courseSearch={courseSearch}
-              setCourseSearch={setCourseSearch}
-              loading={loadingCourses}
-              onCreateCourse={startCreateCourse}
-              onEditCourse={startEditCourse}
-              onManageContent={manageContent}
-            />
+            <CoursesPanel courses={filteredCourses} courseSearch={courseSearch}
+              setCourseSearch={setCourseSearch} loading={loadingCourses}
+              onCreateCourse={startCreateCourse} onEditCourse={startEditCourse}
+              onManageContent={manageContent} onDeleteCourse={deleteCourse}
+              deletingCourseId={deletingCourseId} />
           )}
           {activeSection === "create" && (
-            <CourseFormPanel
-              courseForm={courseForm}
-              editingCourseId={editingCourseId}
-              savingCourse={savingCourse}
-              onChange={handleCourseChange}
-              onSubmit={handleCourseSubmit}
-              onCancel={resetCourseForm}
-            />
+            <CourseFormPanel courseForm={courseForm} editingCourseId={editingCourseId}
+              savingCourse={savingCourse} onChange={handleCourseChange}
+              onSubmit={handleCourseSubmit} onCancel={resetCourseForm} />
           )}
           {activeSection === "content" && (
-            <ContentPanel
-              courses={courses}
-              selectedCourseId={selectedCourseId}
-              selectedCourse={selectedCourse}
-              contents={contents}
-              contentForm={contentForm}
-              editingContentId={editingContentId}
-              loadingContent={loadingContent}
-              savingContent={savingContent}
-              deletingContentId={deletingContentId}
+            <ContentPanel courses={courses} selectedCourseId={selectedCourseId}
+              selectedCourse={selectedCourse} contents={contents} contentForm={contentForm}
+              editingContentId={editingContentId} loadingContent={loadingContent}
+              savingContent={savingContent} deletingContentId={deletingContentId}
               onSelectCourse={(id) => { setSelectedCourseId(id); resetContentForm(); }}
-              onChange={handleContentChange}
-              onSubmit={handleContentSubmit}
-              onEditContent={startEditContent}
-              onDeleteContent={deleteContent}
-              onCancelEdit={resetContentForm}
-              onCreateCourse={startCreateCourse}
-              onUploadComplete={(s3Key) => setContentForm((c) => ({ ...c, url: s3Key }))}
-            />
+              onChange={handleContentChange} onSubmit={handleContentSubmit}
+              onEditContent={startEditContent} onDeleteContent={deleteContent}
+              onCancelEdit={resetContentForm} onCreateCourse={startCreateCourse}
+              onUploadComplete={(s3Key) => setContentForm((c) => ({ ...c, url: s3Key }))} />
           )}
         </main>
       </div>
@@ -713,40 +551,37 @@ function AdminDashboard() {
   );
 }
 
-// ─── NavGroup ─────────────────────────────────────────────────────────────────
 function NavGroup({ title, items, active, onSelect, open }) {
   return (
     <div>
       {open && (
-        <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">
+        <p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
           {title}
         </p>
       )}
       <div className="space-y-0.5">
         {items.map((item) => {
-          const Icon   = item.icon;
+          const Icon     = item.icon;
           const isActive = active === item.id;
           const cls = [
-            "flex h-10 w-full items-center gap-3 rounded-lg px-3 transition",
+            "flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm transition",
             open ? "justify-start" : "justify-center",
             isActive
-              ? "bg-white/10 text-white"
-              : "text-white/50 hover:bg-white/10 hover:text-white",
+              ? "bg-blue-50 text-blue-900 font-bold"
+              : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 font-semibold",
           ].join(" ");
-
-          // items with href render as <Link>
           if (item.href) {
             return (
               <Link key={item.id} to={item.href} className={cls}>
                 <Icon size={17} className="shrink-0" />
-                {open && <span className="truncate text-sm font-semibold">{item.label}</span>}
+                {open && <span className="truncate">{item.label}</span>}
               </Link>
             );
           }
           return (
             <button key={item.id} type="button" onClick={() => onSelect(item.id)} className={cls}>
               <Icon size={17} className="shrink-0" />
-              {open && <span className="truncate text-sm font-semibold">{item.label}</span>}
+              {open && <span className="truncate">{item.label}</span>}
             </button>
           );
         })}
@@ -755,180 +590,147 @@ function NavGroup({ title, items, active, onSelect, open }) {
   );
 }
 
-// ─── DashboardHome ────────────────────────────────────────────────────────────
 function DashboardHome({ courses, contents, stats, loading, onCreateCourse, onManageContent, onOpenCourses }) {
-  const topCourses = courses.slice(0, 4);
-  const maxBar     = Math.max(...MOMENTUM_BARS);
-
   return (
     <div className="space-y-6">
-      {/* hero */}
-      <section className="rounded-xl bg-[#0b1f3a] px-6 py-8 text-white">
+      {/* Hero banner */}
+      <section className="rounded-2xl bg-gradient-to-br from-[#0b1f3a] to-blue-900 px-7 py-8 text-white shadow-sm">
         <p className="text-xs font-bold uppercase tracking-widest text-blue-300">Admin Studio</p>
-        <h2 className="mt-2 text-2xl font-extrabold sm:text-3xl">
-          Build, organize &amp; publish your catalog.
-        </h2>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-blue-200">
-          Create courses, upload content, and track your catalog — all from one workspace.
+        <h2 className="mt-2 text-2xl font-extrabold">Build, organize &amp; publish your catalog.</h2>
+        <p className="mt-1.5 max-w-lg text-sm text-blue-200 leading-6">
+          Create courses, upload content, and grow your learner base — all in one place.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={onCreateCourse}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-bold text-blue-950 transition hover:bg-blue-50"
-          >
-            <PlusCircle size={16} /> Create Course
+          <button type="button" onClick={onCreateCourse}
+            className="inline-flex h-9 items-center gap-2 rounded-lg bg-white px-4 text-sm font-bold text-blue-900 transition hover:bg-blue-50">
+            <PlusCircle size={15} /> Create Course
           </button>
-          <button
-            type="button"
-            onClick={onOpenCourses}
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/20 px-4 text-sm font-bold text-white transition hover:bg-white/10"
-          >
-            <BookOpen size={16} /> View Courses
+          <button type="button" onClick={onOpenCourses}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-bold text-white transition hover:bg-white/20">
+            <BookOpen size={15} /> View Courses
           </button>
         </div>
       </section>
 
-      {/* metrics */}
+     
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Active Courses" value={courses.length}                                      icon={BookOpen}    tone="blue"   />
-        <MetricCard label="Total Learners" value={stats.learners.toLocaleString("en-IN")}              icon={UserCircle}  tone="green"  />
-        <MetricCard label="Categories"     value={stats.categories}                                    icon={Layers}      tone="violet" />
-        <MetricCard label="Catalog Value"  value={"Rs " + stats.value.toLocaleString("en-IN")}         icon={IndianRupee} tone="amber"  />
+        <MetricCard label="Active Courses"  value={courses.length}                               icon={BookOpen}    color="blue"   />
+        <MetricCard label="Total Learners"  value={stats.learners.toLocaleString("en-IN")}       icon={UserCircle}  color="green"  />
+        <MetricCard label="Categories"      value={stats.categories}                             icon={Layers}      color="violet" />
+        <MetricCard label="Catalog Value"   value={"₹" + stats.value.toLocaleString("en-IN")}   icon={IndianRupee} color="amber"  />
       </section>
 
-      {/* charts */}
+    
       <section className="grid gap-6 xl:grid-cols-[1fr_320px]">
-        {/* momentum */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <div className="flex items-start justify-between gap-4">
+        {/* Recent courses */}
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
             <div>
-              <h3 className="font-bold text-slate-900">Catalog Momentum</h3>
-              <p className="mt-0.5 text-xs text-slate-500">
-                {courses.length > 0
-                  ? courses.length + " courses published — preview trend"
-                  : "Sample trend — publish courses to see real data"}
-              </p>
+              <h3 className="font-bold text-slate-900">Recent Courses</h3>
+              <p className="mt-0.5 text-xs text-slate-500">Your latest published work</p>
             </div>
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">6 months</span>
+            <button type="button" onClick={onOpenCourses}
+              className="text-xs font-bold text-blue-900 hover:underline">View all</button>
           </div>
-          <div className="mt-6 flex h-48 items-end gap-2">
-            {MOMENTUM_BARS.map((h, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-2">
-                <div
-                  className="w-full rounded-t-md bg-blue-900 transition-all duration-500 hover:bg-blue-700"
-                  style={{ height: (h / maxBar) * 100 + "%" }}
-                />
-                <span className="text-[11px] font-semibold text-slate-400">{MOMENTUM_MONTHS[i]}</span>
-              </div>
-            ))}
-          </div>
-          {courses.length === 0 && (
-            <p className="mt-3 rounded-lg bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-700">
-              Create your first course to start tracking real enrollment data.
-            </p>
+          {loading ? (
+            <div className="p-5 space-y-3">
+              {[...Array(3)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />)}
+            </div>
+          ) : courses.length === 0 ? (
+            <EmptyState title="No courses yet" text="Create your first course to get started."
+              action="Create Course" onAction={onCreateCourse} />
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {courses.slice(0, 5).map((course) => (
+                <div key={course._id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition">
+                  <img src={course.imageUrl || fallbackImage} alt={course.title || "Course"}
+                    className="h-12 w-16 shrink-0 rounded-lg object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900">{course.title || "Untitled"}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {course.category || "General"} · {course.level || "Beginner"} · ₹{Number(course.price || 0).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => onManageContent(course)}
+                    className="shrink-0 text-xs font-bold text-blue-900 hover:underline whitespace-nowrap">
+                    + Content
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* content mix */}
+        {/* Content mix */}
         <div className="rounded-xl border border-slate-200 bg-white p-6">
           <h3 className="font-bold text-slate-900">Content Mix</h3>
-          <p className="mt-0.5 text-xs text-slate-500">{contents.length} items on selected course</p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            {contents.length} item{contents.length !== 1 ? "s" : ""} in selected course
+          </p>
           <div className="mt-5 space-y-4">
             {contentTypes.map((type) => {
               const count = contents.filter((c) => c.type === type.value).length;
-              const pct   = contents.length ? Math.max(8, (count / contents.length) * 100) : 8;
+              const pct   = contents.length ? Math.round((count / contents.length) * 100) : 0;
               return (
                 <div key={type.value}>
                   <div className="mb-1.5 flex justify-between text-xs font-semibold">
                     <span className="text-slate-600">{type.label}</span>
                     <span className="text-blue-900">{count}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                    <div className="h-full rounded-full bg-blue-900 transition-all duration-500" style={{ width: pct + "%" }} />
+                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                      style={{ width: count > 0 ? `${Math.max(10, pct)}%` : "0%" }} />
                   </div>
                 </div>
               );
             })}
           </div>
           <div className="mt-5 rounded-lg bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-            {stats.previewItems} preview item{stats.previewItems !== 1 ? "s" : ""} visible to learners
+            {stats.previews} preview item{stats.previews !== 1 ? "s" : ""} visible to learners
           </div>
         </div>
-      </section>
-
-      {/* top courses */}
-      <section className="rounded-xl border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div>
-            <h3 className="font-bold text-slate-900">Top Courses</h3>
-            <p className="mt-0.5 text-xs text-slate-500">Quick access to your latest course work</p>
-          </div>
-          <button type="button" onClick={onOpenCourses} className="text-xs font-bold text-blue-900 hover:underline">
-            View all
-          </button>
-        </div>
-        {loading ? (
-          <div className="grid gap-4 p-6 md:grid-cols-2">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-24 animate-pulse rounded-lg bg-slate-100" />)}
-          </div>
-        ) : topCourses.length === 0 ? (
-          <EmptyState title="No courses yet" text="Create your first course to start building your catalog." action="Create Course" onAction={onCreateCourse} />
-        ) : (
-          <div className="grid gap-4 p-6 md:grid-cols-2">
-            {topCourses.map((course) => (
-              <CourseMiniCard key={course._id} course={course} onManageContent={onManageContent} />
-            ))}
-          </div>
-        )}
       </section>
     </div>
   );
 }
 
-// ─── MetricCard ───────────────────────────────────────────────────────────────
-function MetricCard({ label, value, icon: Icon, tone }) {
-  const tones = {
-    blue:   "bg-blue-50 text-blue-800",
-    green:  "bg-emerald-50 text-emerald-700",
-    violet: "bg-violet-50 text-violet-700",
-    amber:  "bg-amber-50 text-amber-700",
+
+function MetricCard({ label, value, icon: MetricIcon, color }) {
+  const colors = {
+    blue:   { bg: "bg-blue-50",    text: "text-blue-900"   },
+    green:  { bg: "bg-emerald-50", text: "text-emerald-600" },
+    violet: { bg: "bg-violet-50",  text: "text-violet-600"  },
+    amber:  { bg: "bg-amber-50",   text: "text-amber-600"   },
   };
+  const c = colors[color] || colors.blue;
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-sm">
-      <div className={"flex h-10 w-10 items-center justify-center rounded-lg " + tones[tone]}>
-        <Icon size={20} />
+      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${c.bg} ${c.text}`}>
+        <MetricIcon size={20} />
       </div>
       <p className="mt-4 text-xs font-semibold text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-extrabold text-slate-950">{value}</p>
+      <p className="mt-1 text-2xl font-extrabold text-slate-900">{value}</p>
     </article>
   );
 }
 
-// ─── CoursesPanel ─────────────────────────────────────────────────────────────
-function CoursesPanel({ courses, courseSearch, setCourseSearch, loading, onCreateCourse, onEditCourse, onManageContent }) {
+function CoursesPanel({ courses, courseSearch, setCourseSearch, loading, onCreateCourse, onEditCourse, onManageContent, onDeleteCourse, deletingCourseId }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white">
       <div className="flex flex-col gap-4 border-b border-slate-100 p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-950">Your Courses</h2>
-          <p className="mt-0.5 text-sm text-slate-500">Manage every course and jump into content creation.</p>
+          <h2 className="text-xl font-extrabold text-slate-900">Your Courses</h2>
+          <p className="mt-0.5 text-sm text-slate-500">Manage and publish your course catalog.</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <label className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 sm:w-64">
             <Search size={15} className="shrink-0 text-slate-400" />
-            <input
-              value={courseSearch}
-              onChange={(e) => setCourseSearch(e.target.value)}
+            <input value={courseSearch} onChange={(e) => setCourseSearch(e.target.value)}
               className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
-              placeholder="Search courses…"
-            />
+              placeholder="Search courses…" />
           </label>
-          <button
-            type="button"
-            onClick={onCreateCourse}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-900 px-4 text-sm font-bold text-white transition hover:bg-blue-800"
-          >
+          <button type="button" onClick={onCreateCourse}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-900 px-4 text-sm font-bold text-white transition hover:bg-blue-800">
             <PlusCircle size={15} /> Add Course
           </button>
         </div>
@@ -938,31 +740,39 @@ function CoursesPanel({ courses, courseSearch, setCourseSearch, loading, onCreat
           {[...Array(4)].map((_, i) => <div key={i} className="h-48 animate-pulse rounded-lg bg-slate-100" />)}
         </div>
       ) : courses.length === 0 ? (
-        <EmptyState title="No matching courses" text="Create a new course or clear your search." action="Add Course" onAction={onCreateCourse} />
+        <EmptyState title="No matching courses" text="Create a new course or clear your search."
+          action="Add Course" onAction={onCreateCourse} />
       ) : (
         <div className="grid gap-4 p-5 lg:grid-cols-2">
           {courses.map((course) => (
-            <article key={course._id} className="overflow-hidden rounded-xl border border-slate-100 bg-white">
+            <article key={course._id} className="overflow-hidden rounded-xl border border-slate-100">
               <div className="grid gap-4 p-4 sm:grid-cols-[140px_1fr]">
-                <img src={course.imageUrl || fallbackImage} alt={course.title || "Course"} className="h-32 w-full rounded-lg object-cover" />
+                <img src={course.imageUrl || fallbackImage} alt={course.title || "Course"}
+                  className="h-32 w-full rounded-lg object-cover" />
                 <div className="min-w-0">
                   <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-800">{course.level || "Beginner"}</span>
+                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-900">{course.level || "Beginner"}</span>
                     {course.category && (
                       <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600">{course.category}</span>
                     )}
                   </div>
-                  <h3 className="mt-2 truncate font-extrabold text-slate-950">{course.title || "Untitled Course"}</h3>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{course.description || "No description added yet."}</p>
-                  <p className="mt-2 font-extrabold text-blue-900">Rs {Number(course.price || 0).toLocaleString("en-IN")}</p>
+                  <h3 className="mt-2 truncate font-bold text-slate-900">{course.title || "Untitled Course"}</h3>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{course.description || "No description yet."}</p>
+                  <p className="mt-2 font-bold text-blue-900">₹{Number(course.price || 0).toLocaleString("en-IN")}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3">
-                <button type="button" onClick={() => onManageContent(course)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-900 px-3 text-xs font-bold text-white transition hover:bg-blue-800">
+                <button type="button" onClick={() => onManageContent(course)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-900 px-3 text-xs font-bold text-white transition hover:bg-blue-800">
                   <PlusCircle size={14} /> Add Content
                 </button>
-                <button type="button" onClick={() => onEditCourse(course)} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50">
+                <button type="button" onClick={() => onEditCourse(course)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50">
                   <Edit3 size={14} /> Edit
+                </button>
+                <button type="button" onClick={() => onDeleteCourse(course)} disabled={deletingCourseId === course._id}
+                  className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-100 px-3 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-60">
+                  {deletingCourseId === course._id ? <Loader2 className="animate-spin" size={13} /> : <Trash2 size={13} />} Delete
                 </button>
               </div>
             </article>
@@ -973,44 +783,48 @@ function CoursesPanel({ courses, courseSearch, setCourseSearch, loading, onCreat
   );
 }
 
-// ─── CourseFormPanel ──────────────────────────────────────────────────────────
 function CourseFormPanel({ courseForm, editingCourseId, savingCourse, onChange, onSubmit, onCancel }) {
   return (
-    <section className="grid gap-6 xl:grid-cols-[1fr_300px]">
+    <section className="grid gap-6 xl:grid-cols-[1fr_280px]">
       <form onSubmit={onSubmit} className="rounded-xl border border-slate-200 bg-white">
         <div className="border-b border-slate-100 px-6 py-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-800">Course Builder</p>
-          <h2 className="mt-1 text-xl font-extrabold text-slate-950">
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-900">Course Builder</p>
+          <h2 className="mt-1 text-xl font-extrabold text-slate-900">
             {editingCourseId ? "Edit course details" : "Create a new course"}
           </h2>
-          <p className="mt-1 text-sm text-slate-500">After saving you'll move straight into the content editor.</p>
+          <p className="mt-1 text-sm text-slate-500">Fill in the details below then add content.</p>
         </div>
         <div className="grid gap-5 p-6">
-          <FormInput label="Course title" name="title" value={courseForm.title} onChange={onChange} placeholder="Full Stack Web Development" required />
+          <FormInput label="Course title" name="title" value={courseForm.title} onChange={onChange}
+            placeholder="Full Stack Web Development" required />
           <label className="block">
             <span className="text-sm font-semibold text-slate-700">Description</span>
             <textarea name="description" value={courseForm.description} onChange={onChange} rows={4}
-              className="mt-1.5 w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              className="mt-1.5 w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
               placeholder="What will students build and finish?" />
           </label>
           <label className="block">
             <span className="text-sm font-semibold text-slate-700">Cover image URL</span>
-            <div className="mt-1.5 flex items-center rounded-lg border border-slate-200 px-3 transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
+            <div className="mt-1.5 flex items-center rounded-lg border border-slate-200 px-3 transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50">
               <Image className="mr-2 shrink-0 text-slate-400" size={16} />
-              <input name="imageUrl" value={courseForm.imageUrl} onChange={onChange} className="w-full py-3 text-sm outline-none" placeholder="https://..." />
+              <input name="imageUrl" value={courseForm.imageUrl} onChange={onChange}
+                className="w-full py-3 text-sm outline-none" placeholder="https://..." />
             </div>
           </label>
           <div className="grid gap-4 md:grid-cols-2">
-            <FormInput label="Sale price (Rs)" name="price" value={courseForm.price} onChange={onChange} placeholder="4999" type="number" min="1" required />
-            <FormInput label="Original price (Rs)" name="originalPrice" value={courseForm.originalPrice} onChange={onChange} placeholder="7999" type="number" min="0" />
+            <FormInput label="Sale price (₹, 0 = free)" name="price" value={courseForm.price}
+              onChange={onChange} placeholder="4999" type="number" min="0" required />
+            <FormInput label="Original price (₹)" name="originalPrice" value={courseForm.originalPrice}
+              onChange={onChange} placeholder="7999" type="number" min="0" />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <FormInput label="Category" name="category" value={courseForm.category} onChange={onChange} placeholder="Web Development" />
+            <FormInput label="Category" name="category" value={courseForm.category}
+              onChange={onChange} placeholder="Web Development" />
             <label className="block">
               <span className="text-sm font-semibold text-slate-700">Level</span>
               <select name="level" value={courseForm.level} onChange={onChange}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
-                {levels.map((l) => <option key={l} value={l}>{l}</option>)}
+                className="mt-1.5 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50">
+                {levels.map((l) => <option key={l}>{l}</option>)}
               </select>
             </label>
           </div>
@@ -1030,12 +844,12 @@ function CourseFormPanel({ courseForm, editingCourseId, savingCourse, onChange, 
         </div>
       </form>
       <aside className="h-fit rounded-xl border border-blue-100 bg-blue-50 p-6">
-        <h3 className="font-bold text-blue-950">Publishing flow</h3>
-        <div className="mt-5 space-y-4">
-          {["Create the course shell", "Add lessons and resources", "Mark previews for free samples", "Keep your catalog fresh"].map((step, i) => (
-            <div key={step} className="flex gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-900 text-[11px] font-bold text-white">{i + 1}</div>
-              <p className="text-sm font-semibold leading-6 text-blue-950">{step}</p>
+        <h3 className="font-bold text-blue-900 text-sm">Publishing steps</h3>
+        <div className="mt-4 space-y-3">
+          {["Fill in course details", "Add lessons & resources", "Mark free previews", "Publish and grow"].map((step, i) => (
+            <div key={step} className="flex gap-3 items-start">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-900 text-[10px] font-bold text-white mt-0.5">{i + 1}</div>
+              <p className="text-sm text-blue-900 leading-5">{step}</p>
             </div>
           ))}
         </div>
@@ -1044,21 +858,20 @@ function CourseFormPanel({ courseForm, editingCourseId, savingCourse, onChange, 
   );
 }
 
-// ─── ContentPanel ─────────────────────────────────────────────────────────────
 function ContentPanel({ courses, selectedCourseId, selectedCourse, contents, contentForm, editingContentId, loadingContent, savingContent, deletingContentId, onSelectCourse, onChange, onSubmit, onEditContent, onDeleteContent, onCancelEdit, onCreateCourse, onUploadComplete }) {
   return (
-    <section className="grid gap-6 xl:grid-cols-[400px_1fr]">
+    <section className="grid gap-6 xl:grid-cols-[380px_1fr]">
       <form onSubmit={onSubmit} className="h-fit rounded-xl border border-slate-200 bg-white">
         <div className="border-b border-slate-100 px-6 py-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-800">Content Studio</p>
-          <h2 className="mt-1 text-xl font-extrabold text-slate-950">{editingContentId ? "Edit content" : "Add content"}</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-900">Content Studio</p>
+          <h2 className="mt-1 text-xl font-extrabold text-slate-900">{editingContentId ? "Edit content" : "Add content"}</h2>
           <p className="mt-1 text-sm text-slate-500">Attach videos, PDFs, links, or text lessons.</p>
         </div>
         <div className="grid gap-5 p-6">
           <label className="block">
             <span className="text-sm font-semibold text-slate-700">Course</span>
             <select value={selectedCourseId} onChange={(e) => onSelectCourse(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+              className="mt-1.5 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50">
               <option value="">Select a course</option>
               {courses.map((c) => <option key={c._id} value={c._id}>{c.title || "Untitled Course"}</option>)}
             </select>
@@ -1072,7 +885,7 @@ function ContentPanel({ courses, selectedCourseId, selectedCourse, contents, con
                 return (
                   <label key={type.value}
                     className={"flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold transition " +
-                      (active ? "border-blue-900 bg-blue-50 text-blue-900" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
+                      (active ? "border-blue-500 bg-blue-50 text-blue-900" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
                     <input type="radio" name="type" value={type.value} checked={active} onChange={onChange} className="sr-only" />
                     <Icon size={15} /> {type.label}
                   </label>
@@ -1080,32 +893,76 @@ function ContentPanel({ courses, selectedCourseId, selectedCourse, contents, con
               })}
             </div>
           </label>
-          <FormInput label="Title" name="title" value={contentForm.title} onChange={onChange} placeholder="Introduction to the course" required />
+          <FormInput label="Title" name="title" value={contentForm.title} onChange={onChange}
+            placeholder="Introduction to the course" required />
           {contentForm.type === "text" ? (
             <label className="block">
               <span className="text-sm font-semibold text-slate-700">Lesson text</span>
               <textarea name="text" value={contentForm.text} onChange={onChange} rows={5} required
-                className="mt-1.5 w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                className="mt-1.5 w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
                 placeholder="Write lesson notes here." />
             </label>
+          ) : contentForm.type === "link" ? (
+            <FormInput label="URL" name="url" value={contentForm.url} onChange={onChange}
+              placeholder="https://example.com/resource" required />
           ) : (
-            <>
-              {contentForm.type === "video" && selectedCourseId && (
-                <div>
-                  <span className="text-sm font-semibold text-slate-700">Upload video</span>
+            /* video or pdf — use the uploader, URL auto-fills after upload */
+            <div className="space-y-3">
+              <div>
+                <span className="text-sm font-semibold text-slate-700">
+                  {contentForm.type === "pdf" ? "Upload PDF" : "Upload video"}
+                </span>
+                {selectedCourseId ? (
                   <div className="mt-1.5">
-                    <VideoUploader courseId={selectedCourseId} onUploadComplete={onUploadComplete} />
+                    <VideoUploader
+                      courseId={selectedCourseId}
+                      onUploadComplete={onUploadComplete}
+                      key={`${selectedCourseId}-${contentForm.type}`}
+                    />
                   </div>
+                ) : (
+                  <p className="mt-1.5 text-xs text-slate-400">Select a course above to enable upload.</p>
+                )}
+              </div>
+          
+              {contentForm.url ? (
+                <div>
+                  <span className="text-sm font-semibold text-slate-700">S3 Key</span>
+                  <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                    <svg className="h-4 w-4 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="flex-1 truncate text-xs font-mono text-green-800">{contentForm.url}</span>
+                    <button
+                      type="button"
+                      onClick={() => onUploadComplete("")}
+                      className="text-xs text-slate-400 hover:text-red-500 transition shrink-0"
+                      title="Clear and re-upload"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {/* hidden input keeps the url in the form so validation passes */}
+                  <input type="hidden" name="url" value={contentForm.url} />
                 </div>
+              ) : (
+                <FormInput
+                  label="Or paste S3 key / URL manually"
+                  name="url"
+                  value={contentForm.url}
+                  onChange={onChange}
+                  placeholder="courses/abc123/videos/uuid-file.mp4"
+                  required
+                />
               )}
-              <FormInput label="URL / S3 Key" name="url" value={contentForm.url} onChange={onChange} placeholder="Paste URL or upload above" required />
-            </>
+            </div>
           )}
           <div className="grid grid-cols-[1fr_auto] items-end gap-3">
-            <FormInput label="Order" name="order" value={contentForm.order} onChange={onChange} placeholder="1" type="number" min="0" />
+            <FormInput label="Order" name="order" value={contentForm.order} onChange={onChange}
+              placeholder="1" type="number" min="0" />
             <label className="flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              <input type="checkbox" name="isPreview" checked={contentForm.isPreview} onChange={onChange} className="h-4 w-4 accent-blue-900" />
-              Preview
+              <input type="checkbox" name="isPreview" checked={contentForm.isPreview} onChange={onChange}
+                className="h-4 w-4 accent-blue-900" /> Preview
             </label>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -1158,10 +1015,10 @@ function ContentPanel({ courses, selectedCourseId, selectedCourse, contents, con
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold capitalize text-slate-600">{content.type}</span>
-                      {content.isPreview && <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-800">Preview</span>}
+                      {content.isPreview && <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700">Preview</span>}
                       <span className="text-[11px] font-semibold text-slate-400">#{content.order || 0}</span>
                     </div>
-                    <h4 className="mt-1 font-bold text-slate-950">{content.title}</h4>
+                    <h4 className="mt-1 font-bold text-slate-900">{content.title}</h4>
                     <p className="mt-0.5 truncate text-xs text-slate-500">
                       {content.type === "text" ? content.text : content.url}
                     </p>
@@ -1173,8 +1030,7 @@ function ContentPanel({ courses, selectedCourseId, selectedCourse, contents, con
                     </button>
                     <button type="button" onClick={() => onDeleteContent(content)} disabled={deletingContentId === content._id}
                       className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-100 px-3 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-60">
-                      {deletingContentId === content._id ? <Loader2 className="animate-spin" size={13} /> : <Trash2 size={13} />}
-                      Delete
+                      {deletingContentId === content._id ? <Loader2 className="animate-spin" size={13} /> : <Trash2 size={13} />} Delete
                     </button>
                   </div>
                 </article>
@@ -1186,44 +1042,25 @@ function ContentPanel({ courses, selectedCourseId, selectedCourse, contents, con
     </section>
   );
 }
-
-// ─── CourseMiniCard ───────────────────────────────────────────────────────────
-function CourseMiniCard({ course, onManageContent }) {
-  return (
-    <article className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4">
-      <img src={course.imageUrl || fallbackImage} alt={course.title || "Course"} className="h-16 w-20 shrink-0 rounded-lg object-cover" />
-      <div className="min-w-0 flex-1">
-        <h4 className="truncate text-sm font-extrabold text-slate-950">{course.title || "Untitled Course"}</h4>
-        <p className="mt-0.5 text-xs text-slate-500">{course.category || "General"} · {course.level || "Beginner"}</p>
-        <button type="button" onClick={() => onManageContent(course)} className="mt-2 text-xs font-bold text-blue-900 hover:underline">
-          Add content →
-        </button>
-      </div>
-    </article>
-  );
-}
-
-// ─── FormInput ────────────────────────────────────────────────────────────────
 function FormInput({ label, name, value, onChange, placeholder, type = "text", ...props }) {
   return (
     <label className="block">
       <span className="text-sm font-semibold text-slate-700">{label}</span>
       <input name={name} value={value} onChange={onChange} placeholder={placeholder} type={type}
-        className="mt-1.5 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+        className="mt-1.5 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
         {...props} />
     </label>
   );
 }
 
-// ─── EmptyState ───────────────────────────────────────────────────────────────
 function EmptyState({ title, text, action, onAction }) {
   return (
-    <div className="flex min-h-64 flex-col items-center justify-center px-6 py-10 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-900">
-        <BookOpen size={26} />
+    <div className="flex min-h-56 flex-col items-center justify-center px-6 py-10 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-900">
+        <BookOpen size={22} />
       </div>
-      <h3 className="mt-4 font-extrabold text-slate-950">{title}</h3>
-      <p className="mt-1.5 max-w-xs text-sm leading-6 text-slate-500">{text}</p>
+      <h3 className="mt-4 font-bold text-slate-900">{title}</h3>
+      <p className="mt-1.5 max-w-xs text-sm text-slate-500">{text}</p>
       {action && (
         <button type="button" onClick={onAction}
           className="mt-5 inline-flex h-10 items-center justify-center rounded-lg bg-blue-900 px-4 text-sm font-bold text-white transition hover:bg-blue-800">

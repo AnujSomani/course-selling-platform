@@ -1,17 +1,9 @@
-// frontend/src/components/VideoUploader.jsx
-//
-// Admin-only component for uploading course videos/PDFs.
-//
-// Upload flow:
-//   1. Admin selects a video file
-//   2. GET /upload/presigned-url → backend returns { presignedUrl, s3Key }
-//   3. XHR PUT to presignedUrl (direct to S3, tracks upload progress)
-//   4. onUploadComplete(s3Key) → parent saves s3Key to contentModel via API
-
 import { useState, useRef } from "react";
 import API from "../api/axios";
 
-const ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const ALLOWED_PDF_TYPES = ["application/pdf"];
+const ALLOWED_TYPES = [...ALLOWED_VIDEO_TYPES, ...ALLOWED_PDF_TYPES];
 const MAX_SIZE_GB = 4;
 const MAX_SIZE_BYTES = MAX_SIZE_GB * 1024 * 1024 * 1024;
 
@@ -22,9 +14,7 @@ const uploadToS3WithProgress = (presignedUrl, file, onProgress) =>
     xhr.setRequestHeader("Content-Type", file.type);
 
     xhr.upload.addEventListener("progress", (e) => {
-      if (e.lengthComputable) {
-        onProgress(Math.round((e.loaded / e.total) * 100));
-      }
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
     });
 
     xhr.addEventListener("load", () => {
@@ -40,7 +30,7 @@ const uploadToS3WithProgress = (presignedUrl, file, onProgress) =>
 
 export default function VideoUploader({ courseId, onUploadComplete }) {
   const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState("idle"); // idle | uploading | done | error
+  const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [fileName, setFileName] = useState("");
   const inputRef = useRef(null);
@@ -50,7 +40,7 @@ export default function VideoUploader({ courseId, onUploadComplete }) {
     if (!file) return;
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setErrorMsg("Only MP4, WebM, or MOV files are allowed.");
+      setErrorMsg("Only MP4, WebM, MOV, or PDF files are allowed.");
       return;
     }
     if (file.size > MAX_SIZE_BYTES) {
@@ -92,7 +82,7 @@ export default function VideoUploader({ courseId, onUploadComplete }) {
       <input
         ref={inputRef}
         type="file"
-        accept="video/mp4,video/webm,video/quicktime"
+        accept="video/mp4,video/webm,video/quicktime,application/pdf"
         onChange={handleFileSelect}
         className="hidden"
         disabled={status === "uploading"}
@@ -109,7 +99,7 @@ export default function VideoUploader({ courseId, onUploadComplete }) {
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
-          Click to upload video (MP4 / WebM / MOV, max {MAX_SIZE_GB}GB)
+          Click to upload video or PDF (MP4 / WebM / MOV / PDF, max {MAX_SIZE_GB}GB)
         </button>
       )}
 

@@ -10,17 +10,18 @@ import {
 
 export function getInitials(email = "") {
   const local = email.split("@")[0] || "U";
-  return local
-    .split(/[._-]/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p.charAt(0).toUpperCase())
-    .join("") || "U";
+  return (
+    local
+      .split(/[._-]/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p.charAt(0).toUpperCase())
+      .join("") || "U"
+  );
 }
 
 export default function DashboardLayout({
   title,
-  email,
   sidebarOpen,
   setSidebarOpen,
   mobileOpen,
@@ -43,63 +44,65 @@ export default function DashboardLayout({
 
       <aside
         style={{
-          width: sidebarOpen ? "280px" : "72px",
-          minWidth: sidebarOpen ? "280px" : "72px",
+          width: sidebarOpen ? "260px" : "68px",
+          minWidth: sidebarOpen ? "260px" : "68px",
           transition:
-            "width 280ms cubic-bezier(0.4,0,0.2,1), min-width 280ms cubic-bezier(0.4,0,0.2,1)",
+            "width 260ms cubic-bezier(0.4,0,0.2,1), min-width 260ms cubic-bezier(0.4,0,0.2,1)",
         }}
         className={[
-          "fixed inset-y-0 left-0 z-40 flex flex-col bg-[#0b1f3a] text-white overflow-hidden",
+          "fixed inset-y-0 left-0 z-40 flex flex-col bg-white border-r border-slate-200 overflow-hidden",
           "lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         ].join(" ")}
       >
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-4">
-          <Link to="/" className="flex items-center gap-2 overflow-hidden">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500 font-black text-sm">
+
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 overflow-hidden min-w-0"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-900 font-black text-sm text-white">
               S
             </div>
             {sidebarOpen && (
-              <span className="whitespace-nowrap font-extrabold tracking-tight">
-                Skill<span className="text-blue-400">Hub</span>
+              <span className="whitespace-nowrap font-extrabold tracking-tight text-slate-900">
+                Upskil<span className="text-blue-600">io</span>
               </span>
             )}
           </Link>
+
           <button
             type="button"
             onClick={() => setSidebarOpen((v) => !v)}
-            className="hidden lg:flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/50 transition hover:bg-white/10 hover:text-white"
             aria-label="Toggle sidebar"
+            className="hidden lg:flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
           >
             {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
           </button>
+
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="flex lg:hidden h-7 w-7 items-center justify-center rounded-md text-white/50 hover:bg-white/10"
+            className="flex lg:hidden h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
             aria-label="Close sidebar"
           >
             <X size={16} />
           </button>
         </div>
 
-        <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-2 py-4">
+        <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-2 py-3">
           {navGroups.map((group) => (
-            <SidebarGroup
-              key={group.title}
-              group={group}
-              open={sidebarOpen}
-            />
+            <SidebarGroup key={group.title} group={group} open={sidebarOpen} />
           ))}
         </nav>
 
-        <div className="shrink-0 border-t border-white/10 p-3">
+        <div className="shrink-0 border-t border-slate-100 p-3">
           <button
             type="button"
             onClick={onLogout}
             className={[
               "flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-semibold",
-              "text-white/60 transition hover:bg-white/10 hover:text-white",
+              "text-slate-500 transition hover:bg-red-50 hover:text-red-600",
               sidebarOpen ? "justify-start" : "justify-center",
             ].join(" ")}
           >
@@ -110,6 +113,7 @@ export default function DashboardLayout({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* topbar */}
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 sm:px-6">
           <button
             type="button"
@@ -119,25 +123,25 @@ export default function DashboardLayout({
           >
             <Menu size={18} />
           </button>
-          <h1 className="text-lg font-bold text-slate-900 truncate">{title}</h1>
+          <h1 className="text-base font-bold text-slate-900 truncate">{title}</h1>
           <Link
             to={viewSiteHref}
-            className="ml-auto hidden sm:inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            className="ml-auto hidden sm:inline-flex h-9 items-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
           >
             View site
           </Link>
         </header>
+
         <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
       </div>
     </div>
   );
 }
-
 function SidebarGroup({ group, open }) {
   return (
     <div>
       {open && (
-        <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">
+        <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
           {group.title}
         </p>
       )}
@@ -155,11 +159,11 @@ function SidebarItem({ item, open, depth }) {
   const paddingLeft = open ? `${12 + depth * 12}px` : undefined;
 
   const baseCls = [
-    "flex w-full items-center gap-3 rounded-lg transition text-left",
+    "flex w-full items-center gap-3 rounded-lg transition-all duration-150 text-left",
     open ? "h-10 px-3" : "h-10 justify-center px-0",
     item.active
-      ? "bg-white/10 text-white"
-      : "text-white/50 hover:bg-white/10 hover:text-white",
+      ? "bg-blue-50 text-blue-900 font-bold"
+      : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 font-semibold",
   ].join(" ");
 
   if (item.children?.length) {
@@ -174,18 +178,25 @@ function SidebarItem({ item, open, depth }) {
           {Icon && <Icon size={17} className="shrink-0" />}
           {open && (
             <>
-              <span className="flex-1 truncate text-sm font-semibold">{item.label}</span>
+              <span className="flex-1 truncate text-sm font-semibold">
+                {item.label}
+              </span>
               <ChevronDown
                 size={14}
-                className={`shrink-0 transition-transform ${item.expanded ? "rotate-180" : ""}`}
+                className={`shrink-0 transition-transform duration-200 ${item.expanded ? "rotate-180" : ""}`}
               />
             </>
           )}
         </button>
         {item.expanded && open && (
-          <div className="mt-0.5 space-y-0.5">
+          <div className="mt-0.5 space-y-0.5 pl-1">
             {item.children.map((child) => (
-              <SidebarItem key={child.id} item={child} open={open} depth={depth + 1} />
+              <SidebarItem
+                key={child.id}
+                item={child}
+                open={open}
+                depth={depth + 1}
+              />
             ))}
           </div>
         )}
@@ -195,9 +206,15 @@ function SidebarItem({ item, open, depth }) {
 
   if (item.href) {
     return (
-      <Link to={item.href} className={baseCls} style={{ paddingLeft: open ? paddingLeft : undefined }}>
+      <Link
+        to={item.href}
+        className={baseCls}
+        style={{ paddingLeft: open ? paddingLeft : undefined }}
+      >
         {Icon && <Icon size={17} className="shrink-0" />}
-        {open && <span className="truncate text-sm font-semibold">{item.label}</span>}
+        {open && (
+          <span className="truncate text-sm font-semibold">{item.label}</span>
+        )}
       </Link>
     );
   }
@@ -210,7 +227,9 @@ function SidebarItem({ item, open, depth }) {
       style={{ paddingLeft: open ? paddingLeft : undefined }}
     >
       {Icon && <Icon size={17} className="shrink-0" />}
-      {open && <span className="truncate text-sm font-semibold">{item.label}</span>}
+      {open && (
+        <span className="truncate text-sm font-semibold">{item.label}</span>
+      )}
     </button>
   );
 }

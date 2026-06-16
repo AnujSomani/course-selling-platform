@@ -1,31 +1,34 @@
 import { useRef, useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { Mail } from "lucide-react";
 import Button from "../components/Button";
 import API from "../api/axios";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 function VerifyEmail() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
+
   const email = location.state?.email || "";
-  const role = location.state?.role || "user";
+  const role  = location.state?.role  || "user";
 
-  // If someone lands here directly without email, send them to signup
+  // Guard: if someone lands here without going through signup, redirect them
   useEffect(() => {
-    if (!location.state?.email) {
-      navigate("/signup", { replace: true });
-    }
-  }, []);
+    if (!location.state?.email) navigate("/signup", { replace: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const verifyEndpoint =
-    role === "admin" ? "/admin/verify-email" : "/user/verify-email";
-  const resendEndpoint =
-    role === "admin"
-      ? "/admin/resend-verification-code"
-      : "/user/resend-verification-code";
+  const verifyEndpoint = role === "admin"
+    ? "/admin/verify-email"
+    : "/user/verify-email";
 
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [loading, setLoading] = useState(false);
+  const resendEndpoint = role === "admin"
+    ? "/admin/resend-verification-code"
+    : "/user/resend-verification-code";
+
+  const [otp,       setOtp]       = useState(["", "", "", "", "", ""]);
+  const [loading,   setLoading]   = useState(false);
   const [resending, setResending] = useState(false);
   const inputRefs = useRef([]);
 
@@ -33,21 +36,23 @@ function VerifyEmail() {
     inputRefs.current[0]?.focus();
   }, []);
 
+  function setDigit(index, digit) {
+    setOtp((prev) => {
+      const next = [...prev];
+      next[index] = digit;
+      return next;
+    });
+  }
+
   function handleChange(e, index) {
     const value = e.target.value.replace(/\D/g, "").slice(-1);
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
+    setDigit(index, value);
+    if (value && index < 5) inputRefs.current[index + 1]?.focus();
   }
 
   function handleKeyDown(e, index) {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      const newOtp = [...otp];
-      newOtp[index - 1] = "";
-      setOtp(newOtp);
+      setDigit(index - 1, "");
       inputRefs.current[index - 1]?.focus();
     }
   }
@@ -55,13 +60,13 @@ function VerifyEmail() {
   function handlePaste(e) {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    const newOtp = [...otp];
-    pasted.split("").forEach((digit, i) => {
-      newOtp[i] = digit;
+    if (!pasted) return;
+    setOtp((prev) => {
+      const next = [...prev];
+      pasted.split("").forEach((d, i) => (next[i] = d));
+      return next;
     });
-    setOtp(newOtp);
-    const next = Math.min(pasted.length, 5);
-    inputRefs.current[next]?.focus();
+    inputRefs.current[Math.min(pasted.length, 5)]?.focus();
   }
 
   const isComplete = otp.every((d) => d !== "");
@@ -72,16 +77,18 @@ function VerifyEmail() {
       toast.error("Please enter the complete 6-digit code");
       return;
     }
-
     try {
       setLoading(true);
-      await API.post(verifyEndpoint, { email, code: otp.join("") });
-      toast.success("Email verified! Please sign in.");
-      // ✅ Correct: redirect to signin, not home — user has no token yet
-      navigate("/signin", { replace: true });
+      const res = await API.post(verifyEndpoint, { email, code: otp.join("") });
+
+      // Backend returns a JWT on successful verification — log in immediately
+      const { token, firstname, lastname } = res.data;
+      login(token, role, email, firstname, lastname);
+
+      toast.success("Email verified! Welcome to Upskilio.");
+      navigate(role === "admin" ? "/admin/dashboard" : "/dashboard", { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.message || "Verification failed");
-      // Clear OTP on failure so user can retry
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } finally {
@@ -102,28 +109,22 @@ function VerifyEmail() {
   }
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-50 px-4">
-      <Toaster position="top-right" />
+    <div className="min-h-screen flex justify-center items-center bg-slate-100 px-4">
 
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="text-3xl font-bold text-blue-900 tracking-tight">
-            SkillHub
+          <Link to="/" className="text-3xl font-extrabold text-blue-900 tracking-tight">
+            Upskil<span className="text-blue-500">io</span>
           </Link>
         </div>
 
         <form
           onSubmit={handleVerify}
-          className="bg-white rounded-2xl shadow-xl px-8 py-10 space-y-6"
+          className="bg-white rounded-2xl shadow-lg border border-gray-100 px-8 py-10 space-y-6"
         >
-          {/* Header */}
           <div className="text-center space-y-2">
-            {/* Icon */}
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
+              <Mail className="w-8 h-8 text-blue-700" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Check your email</h1>
             <p className="text-sm text-gray-500">
@@ -132,7 +133,7 @@ function VerifyEmail() {
             </p>
           </div>
 
-          {/* OTP Inputs */}
+          {/* OTP inputs */}
           <div className="flex gap-2 justify-center">
             {otp.map((digit, i) => (
               <input
@@ -142,6 +143,7 @@ function VerifyEmail() {
                 inputMode="numeric"
                 maxLength={1}
                 value={digit}
+                disabled={loading}
                 autoComplete="one-time-code"
                 aria-label={`Digit ${i + 1}`}
                 onChange={(e) => handleChange(e, i)}
@@ -149,8 +151,11 @@ function VerifyEmail() {
                 onPaste={handlePaste}
                 onFocus={(e) => e.target.select()}
                 className={`w-12 h-14 rounded-xl text-center text-2xl font-mono font-semibold
-                  border-2 outline-none transition-all duration-150
-                  ${digit ? "border-blue-500 bg-blue-50 text-blue-900" : "border-gray-200 bg-white text-gray-900"}
+                  border-2 outline-none transition-all duration-150 disabled:opacity-60
+                  ${digit
+                    ? "border-blue-500 bg-blue-50 text-blue-900"
+                    : "border-gray-200 bg-white text-gray-900"
+                  }
                   focus:border-blue-500 focus:ring-2 focus:ring-blue-100`}
               />
             ))}
@@ -160,9 +165,8 @@ function VerifyEmail() {
             {loading ? "Verifying…" : "Verify Email"}
           </Button>
 
-          {/* Resend */}
           <p className="text-center text-sm text-gray-500">
-            Didn't receive it?{" "}
+            Didn&apos;t receive it?{" "}
             <button
               type="button"
               onClick={handleResend}

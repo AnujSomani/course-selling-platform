@@ -6,9 +6,9 @@ function CategorySection() {
   return (
     <section
       id="categories"
-      className="scroll-mt-20 bg-gray-50 border-t border-gray-100"
+      className="scroll-mt-16 bg-[#f8fafc]"
     >
-      <div className="max-w-7xl mx-auto px-6 py-20">
+      <div className="max-w-7xl mx-auto px-6 pt-8 pb-16">
         <div className="text-center mb-12">
           <h2 className="text-3xl lg:text-4xl font-extrabold text-gray-900">
             Explore Popular Categories
@@ -23,7 +23,7 @@ function CategorySection() {
             <Link
               key={cat.id}
               to={`/courses?category=${cat.id}`}
-              className={`group flex items-center gap-5 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer`}
+              className="group flex items-center gap-5 bg-white rounded-2xl p-6 border border-gray-100/80 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer"
             >
               <div
                 className={`w-14 h-14 rounded-xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center text-2xl shadow-sm flex-shrink-0`}

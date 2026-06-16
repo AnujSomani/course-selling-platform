@@ -5,23 +5,23 @@ const legalContent = {
   terms: {
     title: "Terms & Conditions",
     updated: "Last updated: June 10, 2026",
-    intro: "These terms explain how learners, instructors, and visitors may use SkillHub. By creating an account or using the platform, you agree to follow these terms.",
+    intro: "These terms explain how learners, instructors, and visitors may use Upskilio. By creating an account or using the platform, you agree to follow these terms.",
     sections: [
       ["Accounts", "You are responsible for keeping your login details secure and for activity that happens through your account."],
       ["Courses and access", "Course access is provided for personal learning. Sharing paid course material, credentials, or downloaded content without permission is not allowed."],
-      ["Instructor content", "Instructors must publish original, lawful, and accurate course material. SkillHub may review or remove content that harms learners or violates platform rules."],
-      ["Platform availability", "We work to keep SkillHub reliable, but maintenance, updates, or technical issues may temporarily affect access."],
+      ["Instructor content", "Instructors must publish original, lawful, and accurate course material. Upskilio may review or remove content that harms learners or violates platform rules."],
+      ["Platform availability", "We work to keep Upskilio reliable, but maintenance, updates, or technical issues may temporarily affect access."],
       ["Acceptable use", "Do not misuse the service, attempt unauthorized access, disrupt other users, or upload harmful content."],
     ],
   },
   privacy: {
     title: "Privacy Policy",
     updated: "Last updated: June 10, 2026",
-    intro: "This policy describes the information SkillHub collects and how it is used to provide learning features, support accounts, and improve the service.",
+    intro: "This policy describes the information Upskilio collects and how it is used to provide learning features, support accounts, and improve the service.",
     sections: [
       ["Information we collect", "We may collect account details such as name, email address, role, course activity, purchase records, and basic device or usage information."],
       ["How we use data", "We use information to authenticate users, provide course access, process purchases, send important notices, improve product quality, and protect the platform."],
-      ["Cookies and storage", "SkillHub may use cookies or browser storage for login sessions, preferences, analytics, and essential security features."],
+      ["Cookies and storage", "Upskilio may use cookies or browser storage for login sessions, preferences, analytics, and essential security features."],
       ["Data sharing", "We do not sell personal data. Limited information may be shared with service providers when needed for hosting, payments, support, analytics, or legal compliance."],
       ["Your choices", "You may request account updates or deletion where applicable. Some records may be retained when required for security, legal, or transaction purposes."],
     ],
@@ -29,13 +29,13 @@ const legalContent = {
   refund: {
     title: "Refund & Cancellation",
     updated: "Last updated: June 10, 2026",
-    intro: "This policy explains how refunds and cancellations work for SkillHub purchases.",
+    intro: "This policy explains how refunds and cancellations work for Upskilio purchases.",
     sections: [
       ["Cancellation", "A learner may cancel a purchase request before payment is completed. Once access is granted, cancellation depends on the refund rules below."],
       ["Refund window", "Refund requests can be reviewed when raised within 7 days of purchase and when a substantial portion of the course has not been consumed."],
       ["Non-refundable cases", "Refunds may be declined for completed courses, misuse of access, shared credentials, downloaded materials, promotional free access, or policy abuse."],
       ["Processing", "Approved refunds are returned to the original payment method when possible. Bank or payment-provider timelines may vary."],
-      ["How to request help", "Contact SkillHub support with your account email, course name, purchase date, and the reason for the request."],
+      ["How to request help", "Contact Upskilio support with your account email, course name, purchase date, and the reason for the request."],
     ],
   },
 };

@@ -17,6 +17,7 @@ import Footer from "../components/Footer";
 import BuyButton from "../components/BuyButton";
 import { useAuth } from "../context/AuthContext";
 
+// DEPENDENCY: Fallback image sourced from Unsplash CDN. Replace with self-hosted S3/CloudFront URL for full independence.
 const fallbackImage =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop";
 
@@ -29,7 +30,6 @@ const levelColor = {
 function CourseDetailPage() {
   const { courseId } = useParams();
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [course, setCourse] = useState(null);
   const [previewContent, setPreviewContent] = useState([]);
@@ -146,7 +146,8 @@ function CourseDetailPage() {
                 alt={course.title}
                 className="w-full h-64 lg:h-80 object-cover"
                 onError={(e) => {
-                  e.target.src = fallbackImage;
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = fallbackImage;
                 }}
               />
             </div>

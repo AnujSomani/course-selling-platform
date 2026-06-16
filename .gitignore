@@ -20,6 +20,15 @@ frontend/dist/
 # ── Logs ──────────────────────────────────────────────────────────────────────
 npm-debug.log*
 *.log
+vite-dev.log
+vite-dev.err.log
+
+# ── Source files not needed in S3 deployment ──────────────────────────────────
+frontend/README.md
+
+# ── Editor and tool folders ───────────────────────────────────────────────────
+.vscode/
+.kiro/
 
 # ── OS junk ───────────────────────────────────────────────────────────────────
 .DS_Store

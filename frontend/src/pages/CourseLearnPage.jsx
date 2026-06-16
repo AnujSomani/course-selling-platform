@@ -26,7 +26,7 @@ function CourseLearnPage() {
   const { courseId } = useParams();
   const [searchParams] = useSearchParams();
   const lessonParam = searchParams.get("lesson");
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -167,7 +167,6 @@ function CourseLearnPage() {
   return (
     <DashboardLayout
       title={course?.title || "Course Player"}
-      email={user?.email}
       sidebarOpen={sidebarOpen}
       setSidebarOpen={setSidebarOpen}
       mobileOpen={mobileOpen}

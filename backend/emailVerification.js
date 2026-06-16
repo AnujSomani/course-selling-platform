@@ -1,58 +1,61 @@
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+let _transporter = null;
 
+function getTransporter() {
+  if (_transporter) return _transporter;
+
+  _transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  return _transporter;
+}
 
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-
 function hashCode(email, code) {
-  return crypto
-    .createHash("sha256")
-    .update(email + code)
-    .digest("hex");
+  return crypto.createHash("sha256").update(email + code).digest("hex");
 }
 
-
-// Fix #19: accept subject and name so the email is personalised
 async function sendEmail(to, code, { subject, firstName } = {}) {
-  if (process.env.EMAIL_DEV_MODE === "1") {
-    console.log(`[EMAIL DEV] To: ${to} | Subject: ${subject} | CODE: ${code}`);
-    return;
-  }
-
   const greeting = firstName ? `Hi ${firstName},` : "Hi,";
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await getTransporter().sendMail({
+    from: `"Upskilio" <${process.env.EMAIL_USER}>`,
     to,
-    subject: subject || "Email Verification",
-    text: `${greeting}\n\nYour verification code is: ${code}\n\nThis code expires in 10 minutes.`,
-    html: `<p>${greeting}</p><p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`,
+    subject: subject || "Your Upskilio verification code",
+    text: `${greeting}\n\nYour verification code is: ${code}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, ignore this email.`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f8fafc;border-radius:12px;">
+        <h2 style="color:#0b1f3a;margin-bottom:8px;">Upskilio</h2>
+        <p style="color:#475569;margin-bottom:24px;">${greeting}</p>
+        <p style="color:#334155;margin-bottom:12px;">Your verification code is:</p>
+        <div style="letter-spacing:8px;font-size:32px;font-weight:800;color:#1d4ed8;text-align:center;padding:16px;background:#eff6ff;border-radius:8px;margin-bottom:24px;">
+          ${code}
+        </div>
+        <p style="color:#64748b;font-size:13px;">This code expires in <strong>10 minutes</strong>. If you did not request this, you can safely ignore this email.</p>
+      </div>
+    `,
   });
 }
 
-// Fix #19: now uses firstName and subjectPrefix params
-// Fix #20: blocks resend if the user is already verified
 async function startEmailVerification({ model, email, firstName, subjectPrefix }) {
   const user = await model.findOne({ email });
   if (!user) return { status: 404, message: "User not found" };
 
-  // Fix #20: don't send a code to an account that's already verified
   if (user.isEmailVerified) {
     return { status: 400, message: "Email is already verified" };
   }
 
-  const code     = generateCode();
+  const code = generateCode();
   const codeHash = hashCode(email, code);
 
   await model.updateOne(
@@ -65,31 +68,36 @@ async function startEmailVerification({ model, email, firstName, subjectPrefix }
     }
   );
 
-  // Fix #19: pass subject and name through to the email function
-  await sendEmail(email, code, {
-    subject:   `${subjectPrefix || "Verify your account"} — Your Code`,
-    firstName,
-  });
+  try {
+    await sendEmail(email, code, {
+      subject: `${subjectPrefix || "Verify your account"} — Your Code`,
+      firstName,
+    });
+  } catch {
+    return {
+      status: 500,
+      message: "Account created but the verification email could not be sent. Use the resend option to try again.",
+    };
+  }
 
   return { status: 200, message: "Code sent" };
 }
-
 
 async function verifyEmailCode({ model, email, code }) {
   const user = await model.findOne({ email });
   if (!user) return { status: 404, message: "User not found" };
 
   const ev = user.emailVerification;
-  if (!ev) return { status: 400, message: "No verification found" };
-
-  if (ev.expiresAt < new Date()) {
-    return { status: 400, message: "Code expired" };
+  if (!ev || !ev.codeHash) {
+    return { status: 400, message: "No verification pending. Request a new code." };
   }
 
-  const hashed = hashCode(email, code);
+  if (new Date() > ev.expiresAt) {
+    return { status: 400, message: "Code expired. Please request a new one." };
+  }
 
-  if (hashed !== ev.codeHash) {
-    return { status: 400, message: "Invalid code" };
+  if (hashCode(email, code) !== ev.codeHash) {
+    return { status: 400, message: "Invalid code. Double-check and try again." };
   }
 
   await model.updateOne(
@@ -97,14 +105,11 @@ async function verifyEmailCode({ model, email, code }) {
     {
       isEmailVerified: true,
       emailVerifiedAt: new Date(),
-      $unset: { emailVerification: "" }
+      $unset: { emailVerification: "" },
     }
   );
 
   return { status: 200, message: "Email verified" };
 }
 
-module.exports = {
-  startEmailVerification,
-  verifyEmailCode
-};
+module.exports = { startEmailVerification, verifyEmailCode };

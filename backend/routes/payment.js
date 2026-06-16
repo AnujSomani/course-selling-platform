@@ -132,6 +132,11 @@ async function completePurchase({ razorpayOrderId, razorpayPaymentId, payload })
     if (err.code === 11000) {
       return { status: "duplicate_handled" };
     }
+    console.error("[completePurchase] Transaction failed:", {
+      razorpayOrderId,
+      razorpayPaymentId,
+      error: err.message,
+    });
     throw err;
   }
 }
@@ -145,7 +150,7 @@ async function paymentWebhookHandler(req, res) {
 
   if (signature !== expectedSig) {
     console.warn("[webhook] Invalid signature — possible spoofed request");
-    return res.status(400).json({ message: "Invalid signature" });
+    return res.status(400).json({ error: "Invalid signature" });
   }
 
   const event = JSON.parse(req.body.toString());

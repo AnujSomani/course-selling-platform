@@ -28,7 +28,7 @@ const contentIcon = {
 };
 
 function UserDashboard() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -193,7 +193,6 @@ function UserDashboard() {
   return (
     <DashboardLayout
       title={sectionTitles[section] || "My Dashboard"}
-      email={user?.email}
       sidebarOpen={sidebarOpen}
       setSidebarOpen={setSidebarOpen}
       mobileOpen={mobileOpen}
@@ -250,7 +249,7 @@ function OverviewPanel({ courses, loading, onBrowse, onOpenCourse }) {
 
       <section className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Purchased Courses" value={loading ? "—" : courses.length} icon={BookOpen} />
-        <StatCard label="In Progress" value={loading ? "—" : courses.length} icon={BarChart3} />
+        <StatCard label="In Progress" value={loading ? "—" : 0} icon={BarChart3} />
         <StatCard label="Certificates" value="—" icon={ReceiptText} />
       </section>
 
@@ -433,11 +432,11 @@ function PurchasesPanel({
   );
 }
 
-function StatCard({ label, value, icon: Icon }) {
+function StatCard({ label, value, icon: StatIcon }) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-sm">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-800">
-        <Icon size={20} />
+        <StatIcon size={20} />
       </div>
       <p className="mt-4 text-xs font-semibold text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-extrabold text-slate-950">{value}</p>
