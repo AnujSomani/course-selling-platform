@@ -31,7 +31,7 @@ async function sendEmail(to, code, { subject, firstName } = {}) {
   const greeting = firstName ? `Hi ${firstName},` : "Hi,";
 
   await getTransporter().sendMail({
-    from: `"Upskilio" <onboarding@resend.dev>`,
+    from: `"Upskilio" <noreply@anujdev.in>`,
     to,
     subject: subject || "Your Upskilio verification code",
     text: `${greeting}\n\nYour verification code is: ${code}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, ignore this email.`,
